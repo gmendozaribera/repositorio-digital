@@ -1,0 +1,1 @@
+Sprint 1, frontend. Recupera de Engram (proyecto repositorio-uagrm) api/auth-contract y project/sprint-status. Crea el proyecto Angular standalone con login, verificación 2FA, cambio de contraseña obligatorio, AuthGuard, RoleGuard y JwtInterceptor con refresh automático en 401.
