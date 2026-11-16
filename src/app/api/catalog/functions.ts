@@ -9,6 +9,10 @@ export type { ActualizarFacultad$Params as ActualizarFacultad$Params } from './f
 export { actualizarFacultad as actualizarFacultad } from './fn/facultades/actualizar-facultad';
 export type { DesactivarFacultad$Params as DesactivarFacultad$Params } from './fn/facultades/desactivar-facultad';
 export { desactivarFacultad as desactivarFacultad } from './fn/facultades/desactivar-facultad';
+export type { ObtenerConfigFacultad$Params as ObtenerConfigFacultad$Params } from './fn/config-facultad/obtener-config-facultad';
+export { obtenerConfigFacultad as obtenerConfigFacultad } from './fn/config-facultad/obtener-config-facultad';
+export type { ActualizarConfigFacultad$Params as ActualizarConfigFacultad$Params } from './fn/config-facultad/actualizar-config-facultad';
+export { actualizarConfigFacultad as actualizarConfigFacultad } from './fn/config-facultad/actualizar-config-facultad';
 export type { ListarCarreras$Params as ListarCarreras$Params } from './fn/carreras/listar-carreras';
 export { listarCarreras as listarCarreras } from './fn/carreras/listar-carreras';
 export type { CrearCarrera$Params as CrearCarrera$Params } from './fn/carreras/crear-carrera';

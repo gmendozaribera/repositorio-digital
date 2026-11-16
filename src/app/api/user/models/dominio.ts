@@ -3,10 +3,18 @@
 
 import { Id } from '../models/id';
 export interface Dominio {
+  /**
+   * Solo relevante en secretos; true si ya tiene un valor guardado.
+   */
+  configurado: boolean;
   description: string;
   domainGroup: string;
   domainId: Id;
   domainName: string;
+
+  /**
+   * Vacio en los parametros secretos (nunca se devuelve su valor).
+   */
   domainValue: string;
   lastTime: string;
 
@@ -14,6 +22,11 @@ export interface Dominio {
    * Usuario (login) que hizo el ultimo cambio; 'sistema' si vino de una migracion.
    */
   lastUser: string;
+
+  /**
+   * true si el valor se guarda cifrado y nunca se devuelve (p. ej. contrasenas).
+   */
+  secreto: boolean;
 
   /**
    * true si el sistema usa este parametro (no se puede eliminar y su valor se valida).

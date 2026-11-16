@@ -15,6 +15,7 @@ const MENU_POR_ROL: Record<Rol, EnlaceMenu[]> = {
     { ruta: '/admin/usuarios', texto: 'Usuarios' },
     { ruta: '/admin/padron', texto: 'Padrón' },
     { ruta: '/admin/parametros', texto: 'Parámetros' },
+    { ruta: '/admin/configuracion', texto: 'Configuración' },
   ],
   DOCENTE: [],
   ESTUDIANTE: [],

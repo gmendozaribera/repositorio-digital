@@ -743,3 +743,70 @@ h3 {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   overflow-wrap: anywhere;
 }
+
+/* Configuracion de la facultad: estado (propia / por defecto) y vista previa del semaforo */
+.estado-config {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.semaforo {
+  margin: 0.5rem 0 1rem;
+}
+
+.semaforo-barra {
+  display: flex;
+  height: 0.9rem;
+  margin: 0.3rem 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.semaforo-barra > div {
+  min-width: 0;
+}
+
+.semaforo-barra .semaforo-verde,
+.semaforo-leyenda .semaforo-verde::before {
+  background: #22c55e;
+}
+
+.semaforo-barra .semaforo-amarillo,
+.semaforo-leyenda .semaforo-amarillo::before {
+  background: #facc15;
+}
+
+.semaforo-barra .semaforo-rojo,
+.semaforo-leyenda .semaforo-rojo::before {
+  background: #ef4444;
+}
+
+.semaforo-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.semaforo-leyenda li::before {
+  content: '';
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.35rem;
+  border-radius: 50%;
+  vertical-align: -0.05rem;
+}
+
+/* Correo SMTP */
+.campo-activo {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}

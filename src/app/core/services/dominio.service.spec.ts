@@ -85,4 +85,29 @@ describe('DominioService', () => {
       );
     expect(status).toBe(409);
   });
+
+  it('prueba SMTP: POST /config/smtp/prueba y propaga el 502 con su detail', () => {
+    let enviado = false;
+    servicio.probarSmtp('admin@uagrm.edu.bo').subscribe(() => (enviado = true));
+    const post = http.expectOne('/api/v1/config/smtp/prueba');
+    expect(post.request.method).toBe('POST');
+    expect(post.request.body).toEqual({ destinatario: 'admin@uagrm.edu.bo' });
+    post.flush(respuesta(null));
+    expect(enviado).toBe(true);
+
+    let detalle = '';
+    servicio
+      .probarSmtp('admin@uagrm.edu.bo')
+      .subscribe({ error: (e: { error: { detail: string } }) => (detalle = e.error.detail) });
+    http.expectOne('/api/v1/config/smtp/prueba').flush(
+      {
+        status: 502,
+        title: 'Error del servidor de correo',
+        detail: 'Conexión rechazada',
+        timestamp: '',
+      },
+      { status: 502, statusText: 'Bad Gateway' },
+    );
+    expect(detalle).toBe('Conexión rechazada');
+  });
 });

@@ -3,7 +3,8 @@ import { roleGuard } from '../../core/auth/role.guard';
 
 // Rutas del rol ADMIN. /admin ya exige authGuard + roleGuard('ADMIN') en app.routes.ts; se repite
 // el roleGuard en cada modulo para que siga protegido aunque se mueva de lugar.
-// Sprint 2: Catalogos, Usuarios, Padron estudiantil y Parametros del sistema (tabla de dominio).
+// Sprint 2: Catalogos, Usuarios, Padron estudiantil, Parametros del sistema (tabla de dominio) y
+// Configuracion (por facultad y correo SMTP).
 export const routes: Routes = [
   {
     path: '',
@@ -34,5 +35,11 @@ export const routes: Routes = [
     title: 'Parámetros · Repositorio Digital',
     loadComponent: () =>
       import('./parametros/parametros.component').then((m) => m.ParametrosComponent),
+  },
+  {
+    path: 'configuracion',
+    canActivate: [roleGuard('ADMIN')],
+    title: 'Configuración · Repositorio Digital',
+    loadChildren: () => import('./configuracion/configuracion.routes').then((m) => m.routes),
   },
 ];

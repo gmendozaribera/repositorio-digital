@@ -22,6 +22,7 @@ export type { PaginaPadron } from './models/pagina-padron';
 export type { PaginaUsuarios } from './models/pagina-usuarios';
 export type { PasswordTemporal } from './models/password-temporal';
 export type { ProblemDetail } from './models/problem-detail';
+export type { PruebaSmtpRequest } from './models/prueba-smtp-request';
 export type { RespuestaDominio } from './models/respuesta-dominio';
 export type { RespuestaEstudianteHabilitado } from './models/respuesta-estudiante-habilitado';
 export type { RespuestaListaDominios } from './models/respuesta-lista-dominios';
@@ -41,6 +42,7 @@ export { UsuariosService } from './services/usuarios.service';
 export { TiposUsuarioService } from './services/tipos-usuario.service';
 export { PadronService } from './services/padron.service';
 export { DominiosService } from './services/dominios.service';
+export { ConfigSmtpService } from './services/config-smtp.service';
 
 export type { ListarUsuarios$Params as ListarUsuarios$Params } from './fn/usuarios/listar-usuarios';
 export { listarUsuarios as listarUsuarios } from './fn/usuarios/listar-usuarios';
@@ -72,3 +74,5 @@ export type { ActualizarDominio$Params as ActualizarDominio$Params } from './fn/
 export { actualizarDominio as actualizarDominio } from './fn/dominios/actualizar-dominio';
 export type { EliminarDominio$Params as EliminarDominio$Params } from './fn/dominios/eliminar-dominio';
 export { eliminarDominio as eliminarDominio } from './fn/dominios/eliminar-dominio';
+export type { ProbarSmtp$Params as ProbarSmtp$Params } from './fn/config-smtp/probar-smtp';
+export { probarSmtp as probarSmtp } from './fn/config-smtp/probar-smtp';

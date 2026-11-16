@@ -5,6 +5,8 @@ export type { ActualizarDocenteGrupoRequest } from './models/actualizar-docente-
 export type { AsignarDocenteRequest } from './models/asignar-docente-request';
 export type { Carrera } from './models/carrera';
 export type { CarreraRequest } from './models/carrera-request';
+export type { ConfigFacultad } from './models/config-facultad';
+export type { ConfigFacultadRequest } from './models/config-facultad-request';
 export type { DocenteGrupo } from './models/docente-grupo';
 export type { Estado } from './models/estado';
 export type { EstadoOpcional } from './models/estado-opcional';
@@ -19,6 +21,7 @@ export type { Materia } from './models/materia';
 export type { MateriaRequest } from './models/materia-request';
 export type { ProblemDetail } from './models/problem-detail';
 export type { RespuestaCarrera } from './models/respuesta-carrera';
+export type { RespuestaConfigFacultad } from './models/respuesta-config-facultad';
 export type { RespuestaDocenteGrupo } from './models/respuesta-docente-grupo';
 export type { RespuestaFacultad } from './models/respuesta-facultad';
 export type { RespuestaFase } from './models/respuesta-fase';

@@ -3,5 +3,10 @@
 
 export interface ActualizarDominioRequest {
   description: string;
-  domainValue: string;
+
+  /**
+   * Valor nuevo. Omitido o null CONSERVA el valor actual (permite cambiar solo la descripcion, incluso
+   * de un secreto). Vacio ('') lo deja vacio, solo si el parametro lo admite (p. ej. borrar un secreto).
+   */
+  domainValue?: string | null;
 }

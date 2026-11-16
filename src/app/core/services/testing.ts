@@ -30,7 +30,34 @@ export const DOMINIO_LOGIN_INTENTOS: Dominio = {
   lastUser: 'sistema',
   lastTime: '2026-11-16T14:00:00Z',
   sistema: true,
+  secreto: false,
+  configurado: true,
 };
+
+/** Parametros del grupo SMTP_GROUP tal como los devuelve GET /dominios?domainGroup=SMTP_GROUP. */
+export function dominiosSmtp(cambios: Partial<Record<string, Partial<Dominio>>> = {}): Dominio[] {
+  const base: [number, string, string, string][] = [
+    [20, 'ACTIVO', 'false', 'Si el sistema envia correos.'],
+    [21, 'CORREO', 'repositorio@uagrm.edu.bo', 'Correo remitente.'],
+    [22, 'HOST', 'smtp.gmail.com', 'Servidor SMTP.'],
+    [23, 'PASSWORD', '', 'Contraseña de la cuenta de correo.'],
+    [24, 'PUERTO', '587', 'Puerto del servidor SMTP.'],
+    [25, 'SEGURIDAD', 'STARTTLS', 'SSL, STARTTLS o NINGUNA.'],
+  ];
+  return base.map(([domainId, domainName, domainValue, description]) => ({
+    domainId,
+    domainGroup: 'SMTP_GROUP',
+    domainName,
+    domainValue,
+    description,
+    lastUser: 'sistema',
+    lastTime: '2026-11-16T14:00:00Z',
+    sistema: true,
+    secreto: domainName === 'PASSWORD',
+    configurado: domainName === 'PASSWORD' ? true : domainValue !== '',
+    ...cambios[domainName],
+  }));
+}
 
 /** Envuelve una lista en la forma de PaginaUsuarios / PaginaPadron. */
 export function pagina<T>(contenido: T[], numero = 0, tamano = 20, totalElementos?: number) {

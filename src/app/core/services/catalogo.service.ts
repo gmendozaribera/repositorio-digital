@@ -5,6 +5,8 @@ import type {
   AsignarDocenteRequest,
   Carrera,
   CarreraRequest,
+  ConfigFacultad,
+  ConfigFacultadRequest,
   DocenteGrupo,
   Facultad,
   FacultadRequest,
@@ -20,6 +22,7 @@ import type {
   TipoTrabajoRequest,
 } from '../../api/catalog';
 import { CarrerasService } from '../../api/catalog/services/carreras.service';
+import { ConfigFacultadService } from '../../api/catalog/services/config-facultad.service';
 import { FacultadesService } from '../../api/catalog/services/facultades.service';
 import { FasesService } from '../../api/catalog/services/fases.service';
 import { GruposService } from '../../api/catalog/services/grupos.service';
@@ -75,6 +78,7 @@ export class CatalogoService {
   private readonly gruposApi = inject(GruposService);
   private readonly fasesApi = inject(FasesService);
   private readonly tiposApi = inject(TiposTrabajoService);
+  private readonly configApi = inject(ConfigFacultadService);
 
   readonly facultades: RecursoCatalogo<
     Facultad,
@@ -145,12 +149,31 @@ export class CatalogoService {
     idUsuario: number,
     body: ActualizarDocenteGrupoRequest,
   ): Observable<DocenteGrupo> {
-    return this.gruposApi
-      .actualizarDocenteGrupo({ id: idGrupo, idUsuario, body })
-      .pipe(map(data));
+    return this.gruposApi.actualizarDocenteGrupo({ id: idGrupo, idUsuario, body }).pipe(map(data));
   }
 
   quitarDocente(idGrupo: number, idUsuario: number): Observable<void> {
     return this.gruposApi.quitarDocenteGrupo({ id: idGrupo, idUsuario }).pipe(map(() => undefined));
+  }
+
+  /**
+   * Configuracion vigente de la facultad (cualquier rol autenticado). Si la facultad aun no tiene
+   * una propia llegan los valores por defecto del sistema con `personalizada = false`.
+   * Sprint 3 la usara, p. ej., para validar el tamano maximo de archivo antes de subirlo.
+   */
+  obtenerConfigFacultad(idFacultad: number): Observable<ConfigFacultad> {
+    return this.configApi.obtenerConfigFacultad({ id: idFacultad }).pipe(map(data));
+  }
+
+  /**
+   * Crea o reemplaza la configuracion propia de la facultad (solo ADMIN; `personalizada` pasa a
+   * true). Rige al instante; `jwtExpiracionHoras` afecta a los inicios de sesion posteriores.
+   * 400 si `umbralPlagioMedio >= umbralPlagioAlto` o algun valor esta fuera de rango.
+   */
+  guardarConfigFacultad(
+    idFacultad: number,
+    body: ConfigFacultadRequest,
+  ): Observable<ConfigFacultad> {
+    return this.configApi.actualizarConfigFacultad({ id: idFacultad, body }).pipe(map(data));
   }
 }

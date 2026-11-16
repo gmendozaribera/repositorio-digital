@@ -17,6 +17,7 @@ export type { PaginaPadron } from './models/pagina-padron';
 export type { PaginaUsuarios } from './models/pagina-usuarios';
 export type { PasswordTemporal } from './models/password-temporal';
 export type { ProblemDetail } from './models/problem-detail';
+export type { PruebaSmtpRequest } from './models/prueba-smtp-request';
 export type { RespuestaDominio } from './models/respuesta-dominio';
 export type { RespuestaEstudianteHabilitado } from './models/respuesta-estudiante-habilitado';
 export type { RespuestaListaDominios } from './models/respuesta-lista-dominios';

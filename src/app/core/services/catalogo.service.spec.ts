@@ -123,4 +123,29 @@ describe('CatalogoService', () => {
     del.flush(respuesta(null));
     expect(quitado).toBe(true);
   });
+
+  it('obtiene y guarda la configuración de una facultad', () => {
+    const body = {
+      tamanoMaxArchivoMB: 20,
+      umbralPlagioMedio: 30,
+      umbralPlagioAlto: 50,
+      comparacionInternet: true,
+      accesoExterno: false,
+      escalaCalifMax: 100,
+      jwtExpiracionHoras: 2,
+    };
+    let personalizada: boolean | undefined;
+    servicio.obtenerConfigFacultad(3).subscribe((c) => (personalizada = c.personalizada));
+    const get = http.expectOne(`${API}/facultades/3/config`);
+    expect(get.request.method).toBe('GET');
+    get.flush(respuesta({ ...body, idFacultad: 3, personalizada: false }));
+    expect(personalizada).toBe(false);
+
+    servicio.guardarConfigFacultad(3, body).subscribe((c) => (personalizada = c.personalizada));
+    const put = http.expectOne(`${API}/facultades/3/config`);
+    expect(put.request.method).toBe('PUT');
+    expect(put.request.body).toEqual(body);
+    put.flush(respuesta({ ...body, idFacultad: 3, personalizada: true }));
+    expect(personalizada).toBe(true);
+  });
 });

@@ -158,6 +158,8 @@ export class DominiosService extends BaseService {
    * Cambiar el valor o la descripcion de un parametro (ADMIN).
    *
    * `domainGroup` y `domainName` no se modifican (el codigo los referencia por nombre).
+   * En un parametro secreto, `domainValue` es el valor nuevo en texto plano (se cifra al guardar); la
+   * respuesta no lo incluye.
    * Si el parametro lo usa el sistema, su valor se valida segun su tipo (p. ej. `LOGIN_INTENTOS` debe ser
    * un entero entre 1 y 1000) -> 400. El cambio se aplica en todos los servicios al instante.
    *
@@ -178,6 +180,8 @@ export class DominiosService extends BaseService {
    * Cambiar el valor o la descripcion de un parametro (ADMIN).
    *
    * `domainGroup` y `domainName` no se modifican (el codigo los referencia por nombre).
+   * En un parametro secreto, `domainValue` es el valor nuevo en texto plano (se cifra al guardar); la
+   * respuesta no lo incluye.
    * Si el parametro lo usa el sistema, su valor se valida segun su tipo (p. ej. `LOGIN_INTENTOS` debe ser
    * un entero entre 1 y 1000) -> 400. El cambio se aplica en todos los servicios al instante.
    *

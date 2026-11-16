@@ -6,5 +6,9 @@ export interface CrearDominioRequest {
   description: string;
   domainGroup: CodigoDominio;
   domainName: CodigoDominio;
+
+  /**
+   * Puede ser vacio solo si el parametro lo admite (p. ej. un secreto aun sin configurar).
+   */
   domainValue: string;
 }

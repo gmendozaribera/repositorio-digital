@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import type { Dominio } from '../../../api/user';
+import type { ActualizarDominioRequest, Dominio } from '../../../api/user';
 import {
   aplicarErroresDelServidor,
   errorDelServidor,
@@ -143,14 +143,29 @@ interface GrupoDeParametros {
               </label>
 
               <label class="field">
-                <span>Valor</span>
-                <input
-                  #campoValor
-                  formControlName="domainValue"
-                  maxlength="500"
-                  autocomplete="off"
-                  spellcheck="false"
-                />
+                <span>{{ enEdicion()?.secreto ? 'Nuevo valor' : 'Valor' }}</span>
+                @if (enEdicion()?.secreto) {
+                  <input
+                    #campoValor
+                    type="password"
+                    formControlName="domainValue"
+                    maxlength="500"
+                    autocomplete="new-password"
+                    [placeholder]="
+                      enEdicion()?.configurado
+                        ? '•••••• (configurado, dejar vacío para no cambiar)'
+                        : 'Sin configurar'
+                    "
+                  />
+                } @else {
+                  <input
+                    #campoValor
+                    formControlName="domainValue"
+                    maxlength="500"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                }
                 @if (form.controls.domainValue.touched && form.controls.domainValue.invalid) {
                   <small class="field-error">
                     {{
@@ -161,6 +176,19 @@ interface GrupoDeParametros {
                 }
               </label>
             </div>
+
+            @if (enEdicion()?.secreto) {
+              <p class="muted texto-chico">
+                Valor secreto: se guarda cifrado y nunca se muestra. Escriba uno nuevo solo si
+                quiere reemplazarlo.
+              </p>
+              @if (enEdicion()?.configurado) {
+                <label class="check">
+                  <input type="checkbox" formControlName="borrarValor" />
+                  Borrar el valor guardado
+                </label>
+              }
+            }
 
             <label class="field">
               <span>Descripción</span>
@@ -234,8 +262,27 @@ interface GrupoDeParametros {
                           >Sistema</span
                         >
                       }
+                      @if (d.secreto) {
+                        <span
+                          class="badge badge-warn"
+                          title="Se guarda cifrado; su valor nunca se muestra."
+                          >Secreto</span
+                        >
+                      }
                     </td>
-                    <td data-label="Valor" class="valor-parametro">{{ d.domainValue }}</td>
+                    <td data-label="Valor" class="valor-parametro">
+                      @if (d.secreto) {
+                        @if (d.configurado) {
+                          •••••• <span class="muted">(configurado)</span>
+                        } @else {
+                          <span class="muted">Sin configurar</span>
+                        }
+                      } @else if (d.domainValue === '') {
+                        <span class="muted">(vacío)</span>
+                      } @else {
+                        {{ d.domainValue }}
+                      }
+                    </td>
                     <td data-label="Descripción">{{ d.description }}</td>
                     <td data-label="Último cambio">
                       {{ d.lastUser }}
@@ -328,15 +375,33 @@ export class ParametrosComponent implements OnInit {
   protected readonly form = inject(NonNullableFormBuilder).group({
     domainGroup: ['', this.codigo],
     domainName: ['', this.codigo],
-    domainValue: [
-      '',
-      [Validators.required, Validators.maxLength(500), Validators.pattern(NO_EN_BLANCO)],
-    ],
+    domainValue: [''],
     description: [
       '',
       [Validators.required, Validators.maxLength(255), Validators.pattern(NO_EN_BLANCO)],
     ],
+    /** Solo secretos ya configurados: se envia domainValue vacio para borrarlo. */
+    borrarValor: [false],
   });
+
+  private readonly validadoresValor = [
+    Validators.required,
+    Validators.maxLength(500),
+    Validators.pattern(NO_EN_BLANCO),
+  ];
+
+  constructor() {
+    // "Borrar el valor" y escribir uno nuevo son excluyentes.
+    this.form.controls.borrarValor.valueChanges.pipe(takeUntilDestroyed()).subscribe((b) => {
+      const valor = this.form.controls.domainValue;
+      if (b) {
+        valor.setValue('');
+        valor.disable({ emitEvent: false });
+      } else {
+        valor.enable({ emitEvent: false });
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.cargar();
@@ -346,6 +411,7 @@ export class ParametrosComponent implements OnInit {
     this.enEdicion.set(null);
     // Si se esta viendo un grupo, se propone ese grupo para el alta.
     this.form.reset({ domainGroup: this.filtroGrupo() });
+    this.usarValidadoresDeValor(false);
     this.form.controls.domainGroup.enable();
     this.form.controls.domainName.enable();
     this.abrirFormulario(this.campoGrupo);
@@ -356,9 +422,11 @@ export class ParametrosComponent implements OnInit {
     this.form.reset({
       domainGroup: d.domainGroup,
       domainName: d.domainName,
-      domainValue: d.domainValue,
+      // Un secreto nunca trae su valor: el campo empieza vacio (= no cambiar).
+      domainValue: d.secreto ? '' : d.domainValue,
       description: d.description,
     });
+    this.usarValidadoresDeValor(d.secreto);
     // Grupo y nombre son de solo lectura: el backend solo acepta valor y descripcion.
     this.form.controls.domainGroup.disable();
     this.form.controls.domainName.disable();
@@ -386,14 +454,19 @@ export class ParametrosComponent implements OnInit {
       return;
     }
     const v = this.form.getRawValue();
-    const valores = { domainValue: v.domainValue.trim(), description: v.description.trim() };
     const actual = this.enEdicion();
+    const description = v.description.trim();
+    const domainValue = v.domainValue.trim();
     const peticion = actual
-      ? this.dominiosApi.actualizar(actual.domainId, valores)
+      ? this.dominiosApi.actualizar(
+          actual.domainId,
+          actual.secreto ? this.cambioDeSecreto(description) : { domainValue, description },
+        )
       : this.dominiosApi.crear({
           domainGroup: v.domainGroup.trim().toUpperCase(),
           domainName: v.domainName.trim().toUpperCase(),
-          ...valores,
+          domainValue,
+          description,
         });
 
     this.guardando.set(true);
@@ -422,7 +495,8 @@ export class ParametrosComponent implements OnInit {
     }
     if (
       !confirm(
-        `¿Eliminar el parámetro ${d.domainGroup} / ${d.domainName} (valor «${d.domainValue}»)? ` +
+        `¿Eliminar el parámetro ${d.domainGroup} / ${d.domainName}` +
+          (d.secreto ? '? ' : ` (valor «${d.domainValue}»)? `) +
           'Se borra definitivamente.',
       )
     ) {
@@ -470,6 +544,26 @@ export class ParametrosComponent implements OnInit {
           this.errorListado.set(mensajeDeError(err, 'No se pudieron cargar los parámetros.'));
         },
       });
+  }
+
+  /**
+   * PUT de un secreto: sin `domainValue` el backend CONSERVA el valor actual (asi se puede cambiar
+   * solo la descripcion); '' lo borra. Un valor nuevo se envia tal cual (puede tener espacios).
+   */
+  private cambioDeSecreto(description: string): ActualizarDominioRequest {
+    const { domainValue, borrarValor } = this.form.getRawValue();
+    if (borrarValor) {
+      return { domainValue: '', description };
+    }
+    return domainValue === '' ? { description } : { domainValue, description };
+  }
+
+  /** Los secretos aceptan el valor vacio (= no cambiar); el resto lo exige. */
+  private usarValidadoresDeValor(secreto: boolean): void {
+    const c = this.form.controls.domainValue;
+    c.setValidators(secreto ? [Validators.maxLength(500)] : this.validadoresValor);
+    c.enable({ emitEvent: false });
+    c.updateValueAndValidity({ emitEvent: false });
   }
 
   private abrirFormulario(foco: () => ElementRef<HTMLElement> | undefined): void {

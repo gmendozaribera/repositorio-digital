@@ -25,6 +25,8 @@ const PROPIO: Dominio = {
   lastUser: 'admin',
   lastTime: '2026-11-15T10:30:00Z',
   sistema: false,
+  secreto: false,
+  configurado: true,
 };
 
 describe('ParametrosComponent', () => {

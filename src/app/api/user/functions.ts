@@ -31,3 +31,5 @@ export type { ActualizarDominio$Params as ActualizarDominio$Params } from './fn/
 export { actualizarDominio as actualizarDominio } from './fn/dominios/actualizar-dominio';
 export type { EliminarDominio$Params as EliminarDominio$Params } from './fn/dominios/eliminar-dominio';
 export { eliminarDominio as eliminarDominio } from './fn/dominios/eliminar-dominio';
+export type { ProbarSmtp$Params as ProbarSmtp$Params } from './fn/config-smtp/probar-smtp';
+export { probarSmtp as probarSmtp } from './fn/config-smtp/probar-smtp';
