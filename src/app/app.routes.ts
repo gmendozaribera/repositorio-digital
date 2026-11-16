@@ -62,6 +62,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/perfil/seguridad.component').then((m) => m.SeguridadComponent),
       },
+      {
+        path: 'notificaciones',
+        title: 'Notificaciones · Repositorio Digital',
+        loadComponent: () =>
+          import('./features/notificaciones/notificaciones.component').then(
+            (m) => m.NotificacionesComponent,
+          ),
+      },
       // "/" lleva al dashboard del rol (o al login si no hay sesion).
       { path: '', pathMatch: 'full', redirectTo: () => inject(AuthService).rutaInicio() },
     ],

@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import type { Rol } from '../api/auth';
 import { AuthService } from '../core/auth/auth.service';
+import { CampanaComponent } from './campana.component';
 
 interface EnlaceMenu {
   ruta: string;
@@ -24,7 +25,7 @@ const MENU_POR_ROL: Record<Rol, EnlaceMenu[]> = {
 /** Marco de las paginas autenticadas: barra superior + contenido. */
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CampanaComponent],
   template: `
     <header class="topbar">
       <a class="brand" [routerLink]="auth.rutaInicio()">Repositorio Digital</a>
@@ -42,6 +43,7 @@ const MENU_POR_ROL: Record<Rol, EnlaceMenu[]> = {
       </nav>
       @if (auth.usuario(); as usuario) {
         <div class="topbar-user">
+          <app-campana />
           <span>{{ usuario.nombre }} {{ usuario.apellidos }}</span>
           <span class="badge">{{ usuario.rol }}</span>
           <button class="btn btn-outline btn-sm" type="button" (click)="auth.logout()">

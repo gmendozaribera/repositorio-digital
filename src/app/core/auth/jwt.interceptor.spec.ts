@@ -37,6 +37,18 @@ describe('jwtInterceptor', () => {
     expect(http.expectOne(RECURSO).request.headers.get('Authorization')).toBe('Bearer access-1');
   });
 
+  it('agrega el Bearer a notificaciones y perfil (user-service, cualquier rol)', () => {
+    const pendientes = `${environment.apiUrl}/notificaciones/pendientes`;
+    const preferencias = `${environment.apiUrl}/perfil/preferencias`;
+    client.get(pendientes).subscribe();
+    client.put(preferencias, { notificarCorreo: true }).subscribe();
+
+    expect(http.expectOne(pendientes).request.headers.get('Authorization')).toBe('Bearer access-1');
+    expect(http.expectOne(preferencias).request.headers.get('Authorization')).toBe(
+      'Bearer access-1',
+    );
+  });
+
   it('agrega el Bearer a auth-service y a catalog-service (mismo origen /api/v1)', () => {
     const catalogo = `${environment.apiUrl}/facultades`;
     client.get(catalogo).subscribe();

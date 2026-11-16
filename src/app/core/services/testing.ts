@@ -1,4 +1,4 @@
-import type { Dominio, Usuario } from '../../api/user';
+import type { Dominio, Notificacion, Usuario } from '../../api/user';
 
 /** Datos de prueba de user-service (solo para los .spec.ts). */
 export const USUARIO_DOCENTE: Usuario = {
@@ -70,3 +70,15 @@ export function pagina<T>(contenido: T[], numero = 0, tamano = 20, totalElemento
     totalPaginas: Math.ceil(total / tamano),
   };
 }
+
+/** Notificacion sin leer con enlace interno. */
+export const NOTIFICACION: Notificacion = {
+  idNotificacion: 5,
+  tipo: 'BIENVENIDA',
+  titulo: 'Bienvenido al Repositorio Digital',
+  mensaje: 'Tu cuenta fue creada.',
+  enlace: '/perfil/seguridad',
+  leida: false,
+  fechaCreacion: '2026-11-16T14:00:00Z',
+  fechaLectura: null,
+};

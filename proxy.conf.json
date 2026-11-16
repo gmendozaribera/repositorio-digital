@@ -24,6 +24,16 @@
     "secure": false,
     "changeOrigin": false
   },
+  "/api/v1/notificaciones": {
+    "target": "http://localhost:8083",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/api/v1/perfil/": {
+    "target": "http://localhost:8083",
+    "secure": false,
+    "changeOrigin": false
+  },
   "/api/v1/config/": {
     "target": "http://localhost:8083",
     "secure": false,

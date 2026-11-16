@@ -33,3 +33,15 @@ export type { EliminarDominio$Params as EliminarDominio$Params } from './fn/domi
 export { eliminarDominio as eliminarDominio } from './fn/dominios/eliminar-dominio';
 export type { ProbarSmtp$Params as ProbarSmtp$Params } from './fn/config-smtp/probar-smtp';
 export { probarSmtp as probarSmtp } from './fn/config-smtp/probar-smtp';
+export type { ListarNotificaciones$Params as ListarNotificaciones$Params } from './fn/notificaciones/listar-notificaciones';
+export { listarNotificaciones as listarNotificaciones } from './fn/notificaciones/listar-notificaciones';
+export type { ContarNotificacionesPendientes$Params as ContarNotificacionesPendientes$Params } from './fn/notificaciones/contar-notificaciones-pendientes';
+export { contarNotificacionesPendientes as contarNotificacionesPendientes } from './fn/notificaciones/contar-notificaciones-pendientes';
+export type { MarcarNotificacionLeida$Params as MarcarNotificacionLeida$Params } from './fn/notificaciones/marcar-notificacion-leida';
+export { marcarNotificacionLeida as marcarNotificacionLeida } from './fn/notificaciones/marcar-notificacion-leida';
+export type { MarcarTodasNotificacionesLeidas$Params as MarcarTodasNotificacionesLeidas$Params } from './fn/notificaciones/marcar-todas-notificaciones-leidas';
+export { marcarTodasNotificacionesLeidas as marcarTodasNotificacionesLeidas } from './fn/notificaciones/marcar-todas-notificaciones-leidas';
+export type { ObtenerPreferencias$Params as ObtenerPreferencias$Params } from './fn/perfil/obtener-preferencias';
+export { obtenerPreferencias as obtenerPreferencias } from './fn/perfil/obtener-preferencias';
+export type { ActualizarPreferencias$Params as ActualizarPreferencias$Params } from './fn/perfil/actualizar-preferencias';
+export { actualizarPreferencias as actualizarPreferencias } from './fn/perfil/actualizar-preferencias';

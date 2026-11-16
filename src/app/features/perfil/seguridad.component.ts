@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { mensajeDeError } from '../../core/http/error-message';
 import type { ActivarDosFactoresResponse } from '../../api/auth';
+import { PreferenciasNotificacionComponent } from './preferencias-notificacion.component';
 
 /**
  * Activacion opcional de 2FA desde el perfil, en dos pasos: /2fa/enable genera el secreto y
@@ -11,7 +12,7 @@ import type { ActivarDosFactoresResponse } from '../../api/auth';
  */
 @Component({
   selector: 'app-seguridad',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PreferenciasNotificacionComponent],
   template: `
     <section class="card">
       <h1>Seguridad de la cuenta</h1>
@@ -86,6 +87,8 @@ import type { ActivarDosFactoresResponse } from '../../api/auth';
         </button>
       }
     </section>
+
+    <app-preferencias-notificacion />
   `,
 })
 export class SeguridadComponent {
