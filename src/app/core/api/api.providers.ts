@@ -2,6 +2,7 @@ import { EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { ApiConfiguration as AuthApiConfiguration } from '../../api/auth/api-configuration';
 import { ApiConfiguration as CatalogApiConfiguration } from '../../api/catalog/api-configuration';
+import { ApiConfiguration as UserApiConfiguration } from '../../api/user/api-configuration';
 
 /**
  * Configura los clientes generados con ng-openapi-gen (src/app/api/<servicio>).
@@ -13,5 +14,6 @@ export function provideApi(): EnvironmentProviders {
   return makeEnvironmentProviders([
     { provide: AuthApiConfiguration, useValue: { rootUrl: environment.apiRoot } },
     { provide: CatalogApiConfiguration, useValue: { rootUrl: environment.apiRoot } },
+    { provide: UserApiConfiguration, useValue: { rootUrl: environment.apiRoot } },
   ]);
 }

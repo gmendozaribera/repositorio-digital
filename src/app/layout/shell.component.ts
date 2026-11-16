@@ -10,7 +10,11 @@ interface EnlaceMenu {
 
 /** Modulos de cada rol en la barra superior (ademas de Inicio y Seguridad). */
 const MENU_POR_ROL: Record<Rol, EnlaceMenu[]> = {
-  ADMIN: [{ ruta: '/admin/catalogos', texto: 'Catálogos' }],
+  ADMIN: [
+    { ruta: '/admin/catalogos', texto: 'Catálogos' },
+    { ruta: '/admin/usuarios', texto: 'Usuarios' },
+    { ruta: '/admin/padron', texto: 'Padrón' },
+  ],
   DOCENTE: [],
   ESTUDIANTE: [],
 };

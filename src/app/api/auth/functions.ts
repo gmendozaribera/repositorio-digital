@@ -3,6 +3,8 @@
 
 export type { Login$Params as Login$Params } from './fn/autenticacion/login';
 export { login as login } from './fn/autenticacion/login';
+export type { RegistrarEstudiante$Params as RegistrarEstudiante$Params } from './fn/autenticacion/registrar-estudiante';
+export { registrarEstudiante as registrarEstudiante } from './fn/autenticacion/registrar-estudiante';
 export type { Refrescar$Params as Refrescar$Params } from './fn/autenticacion/refrescar';
 export { refrescar as refrescar } from './fn/autenticacion/refrescar';
 export type { Logout$Params as Logout$Params } from './fn/autenticacion/logout';

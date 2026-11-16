@@ -58,6 +58,26 @@ describe('jwtInterceptor', () => {
     expect(http.expectOne(`${AUTH_URL}/login`).request.headers.has('Authorization')).toBe(false);
   });
 
+  it('el auto-registro va sin token; user-service si lo lleva', () => {
+    const usuarios = `${environment.apiUrl}/usuarios`;
+    const padron = `${environment.apiUrl}/padron/import`;
+    client.post(`${AUTH_URL}/register`, {}).subscribe();
+    client.get(usuarios).subscribe();
+    client.post(padron, {}).subscribe();
+
+    expect(http.expectOne(`${AUTH_URL}/register`).request.headers.has('Authorization')).toBe(false);
+    expect(http.expectOne(usuarios).request.headers.get('Authorization')).toBe('Bearer access-1');
+    expect(http.expectOne(padron).request.headers.get('Authorization')).toBe('Bearer access-1');
+  });
+
+  it('un 401 del auto-registro no intenta refrescar la sesion', () => {
+    let status: number | undefined;
+    client.post(`${AUTH_URL}/register`, {}).subscribe({ error: (e) => (status = e.status) });
+    http.expectOne(`${AUTH_URL}/register`).flush(null, { status: 401, statusText: 'Unauthorized' });
+    expect(status).toBe(401);
+    http.expectNone(`${AUTH_URL}/refresh`);
+  });
+
   it('ante un 401 refresca el token y repite la peticion una vez', () => {
     let resultado: unknown;
     client.get(RECURSO).subscribe((r) => (resultado = r));

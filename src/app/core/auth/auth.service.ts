@@ -7,6 +7,8 @@ import type {
   CambioPasswordRequest,
   LoginRequest,
   LoginResponse,
+  RegistroRequest,
+  RegistroResponse,
   TokenResponse,
   UsuarioSesion,
 } from '../../api/auth';
@@ -55,6 +57,14 @@ export class AuthService {
         }
       }),
     );
+  }
+
+  /**
+   * Auto-registro de estudiante (publico): si CI + registro estan habilitados en el padron, el
+   * backend crea la cuenta. No inicia sesion: devuelve el usuario con el que debe ingresar.
+   */
+  registrar(request: RegistroRequest): Observable<RegistroResponse> {
+    return this.api.registrarEstudiante({ body: request }).pipe(map((r) => r.data));
   }
 
   /** Paso 2 del login: codigo de Google Authenticator. */

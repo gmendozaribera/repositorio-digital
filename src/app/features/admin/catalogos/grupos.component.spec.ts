@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideApi } from '../../../core/api/api.providers';
 import { respuesta } from '../../../core/auth/testing';
+import { pagina as paginaUsuarios, USUARIO_DOCENTE } from '../../../core/services/testing';
 import { GruposComponent } from './grupos.component';
 
 const API = '/api/v1';
@@ -93,9 +94,32 @@ describe('GruposComponent', () => {
     await render();
     expect(pagina.querySelector('app-docentes-grupo .estado-vacio')).not.toBeNull();
 
-    const id = pagina.querySelector<HTMLInputElement>('input[formcontrolname=idUsuario]')!;
-    id.value = '12';
-    id.dispatchEvent(new Event('input'));
+    // Sin elegir docente no se envia nada.
+    boton('Asignar').click();
+    await render();
+    http.expectNone((r) => r.method === 'POST');
+    expect(pagina.querySelector('app-docentes-grupo .field-error')?.textContent).toContain(
+      'Busque y elija un docente',
+    );
+
+    // Buscador de docentes (user-service) con debounce.
+    const buscar = pagina.querySelector<HTMLInputElement>('#buscar-docente')!;
+    buscar.value = 'mar';
+    buscar.dispatchEvent(new Event('input'));
+    await new Promise((r) => setTimeout(r, 350));
+    const busqueda = http.expectOne((r) => r.url === `${API}/usuarios`);
+    expect(busqueda.request.params.get('rol')).toBe('DOCENTE');
+    expect(busqueda.request.params.get('q')).toBe('mar');
+    busqueda.flush(respuesta(paginaUsuarios([USUARIO_DOCENTE])));
+    await render();
+
+    const resultado = pagina.querySelector<HTMLButtonElement>('.resultado')!;
+    expect(resultado.textContent).toContain('María López');
+    expect(resultado.textContent).toContain('doc.maria');
+    resultado.click();
+    await render();
+    expect(pagina.querySelector('.docente-elegido')?.textContent).toContain('María López');
+
     const admin = pagina.querySelector<HTMLInputElement>('input[formcontrolname=esAdminCurso]')!;
     admin.click();
     boton('Asignar').click();

@@ -18,7 +18,10 @@ import { logout } from '../fn/autenticacion/logout';
 import { Logout$Params } from '../fn/autenticacion/logout';
 import { refrescar } from '../fn/autenticacion/refrescar';
 import { Refrescar$Params } from '../fn/autenticacion/refrescar';
+import { registrarEstudiante } from '../fn/autenticacion/registrar-estudiante';
+import { RegistrarEstudiante$Params } from '../fn/autenticacion/registrar-estudiante';
 import { RespuestaLogin } from '../models/respuesta-login';
+import { RespuestaRegistro } from '../models/respuesta-registro';
 import { RespuestaSinDatos } from '../models/respuesta-sin-datos';
 import { RespuestaTokens } from '../models/respuesta-tokens';
 
@@ -69,6 +72,61 @@ export class AutenticacionService extends BaseService {
   login(params: Login$Params, context?: HttpContext): Observable<RespuestaLogin> {
     const resp = this.login$Response(params, context);
     return resp.pipe(map((r: StrictHttpResponse<RespuestaLogin>): RespuestaLogin => r.body));
+  }
+
+  /** Path part for operation `registrarEstudiante()` */
+  static readonly RegistrarEstudiantePath = '/api/v1/auth/register';
+
+  /**
+   * Auto-registro de estudiante.
+   *
+   * El estudiante envia su CI y su numero de registro. Si coinciden con una fila habilitada del padron
+   * estudiantil (importado por el administrador), se crea su cuenta:
+   * - usuario = numero de registro;
+   * - contrasena = la contrasena por defecto entregada por su facultad (columna `password_default` del padron);
+   * - rol ESTUDIANTE, con cambio de contrasena obligatorio en el primer inicio de sesion.
+   *
+   * No devuelve tokens: el estudiante inicia sesion despues con `/login`.
+   * 404 si el CI + registro no estan en el padron o estan inhabilitados; 409 si ya tiene cuenta
+   * (o si su CI/correo ya pertenecen a otra cuenta).
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `registrarEstudiante()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  registrarEstudiante$Response(
+    params: RegistrarEstudiante$Params,
+    context?: HttpContext,
+  ): Observable<StrictHttpResponse<RespuestaRegistro>> {
+    const obs = registrarEstudiante(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Auto-registro de estudiante.
+   *
+   * El estudiante envia su CI y su numero de registro. Si coinciden con una fila habilitada del padron
+   * estudiantil (importado por el administrador), se crea su cuenta:
+   * - usuario = numero de registro;
+   * - contrasena = la contrasena por defecto entregada por su facultad (columna `password_default` del padron);
+   * - rol ESTUDIANTE, con cambio de contrasena obligatorio en el primer inicio de sesion.
+   *
+   * No devuelve tokens: el estudiante inicia sesion despues con `/login`.
+   * 404 si el CI + registro no estan en el padron o estan inhabilitados; 409 si ya tiene cuenta
+   * (o si su CI/correo ya pertenecen a otra cuenta).
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `registrarEstudiante$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  registrarEstudiante(
+    params: RegistrarEstudiante$Params,
+    context?: HttpContext,
+  ): Observable<RespuestaRegistro> {
+    const resp = this.registrarEstudiante$Response(params, context);
+    return resp.pipe(map((r: StrictHttpResponse<RespuestaRegistro>): RespuestaRegistro => r.body));
   }
 
   /** Path part for operation `refrescar()` */

@@ -13,6 +13,13 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'registro',
+    canActivate: [guestGuard],
+    title: 'Crear cuenta de estudiante · Repositorio Digital',
+    loadComponent: () =>
+      import('./features/auth/registro.component').then((m) => m.RegistroComponent),
+  },
+  {
     path: '2fa',
     canActivate: [guestGuard],
     title: 'Verificación en dos pasos · Repositorio Digital',

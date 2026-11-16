@@ -541,3 +541,190 @@ a {
   color: var(--muted);
   padding: 1rem 0;
 }
+
+/* Usuarios y padron */
+h3 {
+  color: var(--primary);
+  font-size: 0.95rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.badge-warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.badge-info {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.texto-chico {
+  font-size: 0.8rem;
+}
+
+/* Input con un boton al lado (p. ej. "Generar" contraseña) */
+.input-con-boton {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.input-con-boton input {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Fira Code', ui-monospace, monospace;
+}
+
+.paginador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.paginador-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.paginador-tamano {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.paginador-tamano select {
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* Switch accesible: un checkbox con role="switch" */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.switch input {
+  appearance: none;
+  position: relative;
+  width: 2.4rem;
+  height: 1.35rem;
+  margin: 0;
+  border-radius: 1rem;
+  background: #cbd5e1;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.switch input::after {
+  content: '';
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+
+.switch input:checked {
+  background: var(--success);
+}
+
+.switch input:checked::after {
+  transform: translateX(1.05rem);
+}
+
+.switch input:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.resumen div {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+}
+
+.resumen dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.resumen dd {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.tabla-desplazable {
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+}
+
+/* La tabla de ejemplo se ve como tabla tambien en movil (se desplaza en horizontal). */
+.tabla-ejemplo {
+  display: table !important;
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.tabla-ejemplo thead {
+  display: table-header-group !important;
+}
+
+.tabla-ejemplo tbody {
+  display: table-row-group !important;
+}
+
+.tabla-ejemplo tr {
+  display: table-row !important;
+}
+
+.tabla-ejemplo th,
+.tabla-ejemplo td {
+  display: table-cell !important;
+  text-transform: none;
+}
+
+.importar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.importar .field {
+  flex: 1 1 260px;
+  margin-bottom: 0;
+}

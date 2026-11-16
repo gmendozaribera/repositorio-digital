@@ -13,8 +13,13 @@ import { AUTH_URL, AuthService } from './auth.service';
 /** Marca la peticion ya reintentada tras un refresh, para no entrar en bucle. */
 const REINTENTADA = new HttpContextToken<boolean>(() => false);
 
-/** Endpoints que no llevan Bearer ni disparan refresh: son los que obtienen tokens. */
-const ENDPOINTS_PUBLICOS = ['/login', '/refresh', '/2fa/verify'].map((p) => `${AUTH_URL}${p}`);
+/**
+ * Endpoints que no llevan Bearer ni disparan refresh: los que obtienen tokens y el auto-registro
+ * (lo usa alguien que todavia no tiene cuenta).
+ */
+const ENDPOINTS_PUBLICOS = ['/login', '/refresh', '/2fa/verify', '/register'].map(
+  (p) => `${AUTH_URL}${p}`,
+);
 
 function esPublico(url: string): boolean {
   return ENDPOINTS_PUBLICOS.some((p) => url.startsWith(p));

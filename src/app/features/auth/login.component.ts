@@ -1,12 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { mensajeDeError } from '../../core/http/error-message';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   template: `
     <main class="auth-page">
       <section class="card auth-card">
@@ -48,6 +48,11 @@ import { mensajeDeError } from '../../core/http/error-message';
             {{ cargando() ? 'Ingresando…' : 'Iniciar sesión' }}
           </button>
         </form>
+
+        <p class="hint">
+          ¿Eres estudiante y no tienes cuenta?
+          <a routerLink="/registro">Regístrate</a>
+        </p>
       </section>
     </main>
   `,
@@ -62,7 +67,11 @@ export class LoginComponent {
   protected readonly sesionExpirada = this.route.snapshot.queryParamMap.has('expirada');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
-    usuario: ['', [Validators.required, Validators.maxLength(50)]],
+    // /registro redirige aqui con ?usuario=<registro> para que el estudiante solo escriba su contraseña.
+    usuario: [
+      this.route.snapshot.queryParamMap.get('usuario') ?? '',
+      [Validators.required, Validators.maxLength(50)],
+    ],
     password: ['', [Validators.required, Validators.maxLength(100)]],
   });
 

@@ -1,13 +1,24 @@
 import { Component, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormControl,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap, tap } from 'rxjs';
 import type { DocenteGrupo } from '../../../api/catalog';
+import type { Usuario } from '../../../api/user';
 import {
   aplicarErroresDelServidor,
   errorDelServidor,
   mensajeDeError,
 } from '../../../core/http/error-message';
 import { CatalogoService } from '../../../core/services/catalogo.service';
+import { UsuarioService } from '../../../core/services/usuario.service';
+
+/** Minimo de caracteres para buscar docentes (evita traer media lista con una letra). */
+const MIN_BUSQUEDA = 2;
 
 /**
  * Docentes asignados a un grupo (GrupoDocente) y el flag esAdminCurso: el Docente
@@ -16,6 +27,51 @@ import { CatalogoService } from '../../../core/services/catalogo.service';
 @Component({
   selector: 'app-docentes-grupo',
   imports: [ReactiveFormsModule],
+  styles: `
+    .buscador label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+    .docente-elegido {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0;
+    }
+    .resultados {
+      list-style: none;
+      margin: 0.4rem 0 0;
+      padding: 0;
+      max-height: 16rem;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .resultado {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      background: none;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .resultado:hover:not(:disabled),
+    .resultado:focus-visible {
+      background: var(--accent-lt);
+    }
+    .resultado:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  `,
   template: `
     <section class="panel" aria-labelledby="titulo-docentes">
       <div class="page-header">
@@ -85,31 +141,80 @@ import { CatalogoService } from '../../../core/services/catalogo.service';
       }
 
       <h2>Asignar docente</h2>
-      <form [formGroup]="form" (ngSubmit)="asignar()" class="inline-form" novalidate>
-        <label class="field">
-          <span>Id de usuario del docente</span>
-          <input formControlName="idUsuario" type="number" inputmode="numeric" min="1" />
-          @if (form.controls.idUsuario.touched && form.controls.idUsuario.invalid) {
-            <small class="field-error">
-              {{ errorDelServidor(form.controls.idUsuario) ?? 'Ingrese un id de usuario válido.' }}
+      <form [formGroup]="form" (ngSubmit)="asignar()" novalidate>
+        @if (seleccionado(); as s) {
+          <div class="field">
+            <span>Docente</span>
+            <p class="docente-elegido">
+              <strong>{{ s.nombre }} {{ s.apellidos }}</strong>
+              <span class="muted">({{ s.usuario }})</span>
+              <button class="btn btn-link btn-sm" type="button" (click)="cambiarDocente()">
+                Cambiar
+              </button>
+            </p>
+          </div>
+        } @else {
+          <div class="field buscador">
+            <label for="buscar-docente">Buscar docente</label>
+            <input
+              id="buscar-docente"
+              [formControl]="busqueda"
+              type="search"
+              maxlength="100"
+              autocomplete="off"
+              placeholder="Nombre, apellidos, usuario o CI"
+              aria-describedby="ayuda-buscar-docente"
+              aria-controls="resultados-docente"
+            />
+            <small id="ayuda-buscar-docente" class="muted">
+              Escriba al menos 2 caracteres. Solo aparecen usuarios activos con rol Docente.
             </small>
-          }
-        </label>
+            @if (buscando()) {
+              <small class="muted" role="status">Buscando…</small>
+            } @else if (errorBusqueda()) {
+              <small class="field-error" role="alert">{{ errorBusqueda() }}</small>
+            } @else if (resultados(); as lista) {
+              @if (lista.length === 0) {
+                <small class="muted" role="status">No se encontraron docentes.</small>
+              } @else {
+                <ul id="resultados-docente" class="resultados" aria-label="Docentes encontrados">
+                  @for (u of lista; track u.idUsuario) {
+                    <li>
+                      <button
+                        type="button"
+                        class="resultado"
+                        [disabled]="yaAsignado(u.idUsuario)"
+                        (click)="elegir(u)"
+                      >
+                        <span>{{ u.nombre }} {{ u.apellidos }}</span>
+                        <span class="muted">
+                          {{ u.usuario }}{{ yaAsignado(u.idUsuario) ? ' · ya asignado' : '' }}
+                        </span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            }
+          </div>
+        }
+        @if (form.controls.idUsuario.touched && form.controls.idUsuario.invalid) {
+          <small class="field-error">
+            {{ errorDelServidor(form.controls.idUsuario) ?? 'Busque y elija un docente.' }}
+          </small>
+        }
         <label class="check">
           <input type="checkbox" formControlName="esAdminCurso" />
           Administrador de curso
         </label>
         <button class="btn btn-primary" type="submit" [disabled]="ocupado()">Asignar</button>
       </form>
-      <p class="muted">
-        El usuario debe estar activo y tener rol DOCENTE. La búsqueda de docentes por nombre llegará
-        con el módulo de usuarios.
-      </p>
     </section>
   `,
 })
 export class DocentesGrupoComponent {
   private readonly catalogo = inject(CatalogoService);
+  private readonly usuarios = inject(UsuarioService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly idGrupo = input.required<number>();
@@ -128,8 +233,68 @@ export class DocentesGrupoComponent {
     esAdminCurso: [false],
   });
 
+  /** Buscador de docentes (user-service: GET /usuarios?rol=DOCENTE&q=...). */
+  protected readonly busqueda = new FormControl('', { nonNullable: true });
+  /** null = todavia no se busco (texto muy corto). */
+  protected readonly resultados = signal<Usuario[] | null>(null);
+  protected readonly buscando = signal(false);
+  protected readonly errorBusqueda = signal<string | null>(null);
+  protected readonly seleccionado = signal<Usuario | null>(null);
+
   constructor() {
     effect(() => this.cargar(this.idGrupo()));
+
+    // Debounce + switchMap: espera a que deje de escribir y descarta respuestas viejas.
+    this.busqueda.valueChanges
+      .pipe(
+        map((q) => q.trim()),
+        debounceTime(300),
+        distinctUntilChanged(),
+        tap((q) => {
+          this.errorBusqueda.set(null);
+          this.buscando.set(q.length >= MIN_BUSQUEDA);
+          if (q.length < MIN_BUSQUEDA) {
+            this.resultados.set(null);
+          }
+        }),
+        switchMap((q) =>
+          q.length < MIN_BUSQUEDA
+            ? of(null)
+            : this.usuarios.buscarDocentes(q).pipe(
+                catchError((err: unknown) => {
+                  this.errorBusqueda.set(mensajeDeError(err, 'No se pudo buscar docentes.'));
+                  return of(null);
+                }),
+              ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((lista) => {
+        this.buscando.set(false);
+        if (lista) {
+          this.resultados.set(lista);
+        }
+      });
+  }
+
+  protected yaAsignado(idUsuario: number): boolean {
+    return this.docentes().some((d) => d.idUsuario === idUsuario);
+  }
+
+  protected elegir(u: Usuario): void {
+    this.seleccionado.set(u);
+    this.form.controls.idUsuario.setValue(u.idUsuario);
+  }
+
+  protected cambiarDocente(): void {
+    this.seleccionado.set(null);
+    this.form.controls.idUsuario.setValue(null);
+  }
+
+  private limpiarBusqueda(): void {
+    this.seleccionado.set(null);
+    this.resultados.set(null);
+    this.busqueda.setValue('', { emitEvent: false });
   }
 
   protected asignar(): void {
@@ -145,6 +310,7 @@ export class DocentesGrupoComponent {
       .subscribe({
         next: (d) => {
           this.form.reset({ idUsuario: null, esAdminCurso: false });
+          this.limpiarBusqueda();
           this.terminar(`${d.nombre} ${d.apellidos} asignado al grupo.`);
         },
         error: (err: unknown) => {
