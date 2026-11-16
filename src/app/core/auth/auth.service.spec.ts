@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideApi } from '../api/api.providers';
 import { provideRouter } from '@angular/router';
 import { AUTH_URL, AuthService } from './auth.service';
 import { PaginaVacia, respuesta, tokensDePrueba } from './testing';
@@ -15,6 +16,7 @@ describe('AuthService', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideApi(),
         provideRouter([{ path: '**', component: PaginaVacia }]),
       ],
     });
@@ -31,15 +33,13 @@ describe('AuthService', () => {
 
   it('login sin 2FA guarda la sesion y envia al dashboard del rol', () => {
     auth.login({ usuario: 'admin', password: 'x' }).subscribe();
-    http
-      .expectOne(`${AUTH_URL}/login`)
-      .flush(
-        respuesta({
-          requiereDosFactores: false,
-          tokenTemporal: null,
-          tokens: tokensDePrueba('ADMIN'),
-        }),
-      );
+    http.expectOne(`${AUTH_URL}/login`).flush(
+      respuesta({
+        requiereDosFactores: false,
+        tokenTemporal: null,
+        tokens: tokensDePrueba('ADMIN'),
+      }),
+    );
 
     expect(auth.autenticado()).toBe(true);
     expect(auth.accessToken()).toBe('access-1');

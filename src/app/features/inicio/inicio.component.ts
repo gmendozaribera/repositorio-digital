@@ -1,7 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
-import { Rol } from '../../core/models/auth.models';
+import type { Rol } from '../../api/auth';
 
 const DESCRIPCION_POR_ROL: Record<Rol, string> = {
   ADMIN: 'Gestión de usuarios, padrón estudiantil, catálogos y configuración de la facultad.',
@@ -18,7 +18,12 @@ const DESCRIPCION_POR_ROL: Record<Rol, string> = {
       <section class="card">
         <h1>Bienvenido, {{ usuario.nombre }}</h1>
         <p class="muted">{{ descripcion() }}</p>
-        <p class="muted">Los módulos de tu rol se habilitarán en los próximos sprints.</p>
+        @if (usuario.rol === 'ADMIN') {
+          <p><a class="btn btn-primary" routerLink="/admin/catalogos">Gestionar catálogos</a></p>
+          <p class="muted">Usuarios, padrón y configuración se habilitarán próximamente.</p>
+        } @else {
+          <p class="muted">Los módulos de tu rol se habilitarán en los próximos sprints.</p>
+        }
         @if (!usuario.twoFactorEnabled) {
           <p class="alert alert-info">
             Protege tu cuenta activando la

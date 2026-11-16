@@ -7,7 +7,7 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { TokenResponse } from '../models/auth.models';
+import type { TokenResponse } from '../../api/auth';
 import { authGuard, guestGuard } from './auth.guard';
 import { roleGuard } from './role.guard';
 import { PaginaVacia, tokensDePrueba } from './testing';

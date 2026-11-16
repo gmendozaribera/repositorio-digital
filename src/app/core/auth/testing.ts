@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { Rol, TokenResponse } from '../models/auth.models';
+import type { Rol, TokenResponse } from '../../api/auth';
 
 /** Pagina vacia para que las navegaciones de las pruebas siempre resuelvan. */
 @Component({ template: '' })

@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { Rol } from '../models/auth.models';
+import type { Rol } from '../../api/auth';
 import { AuthService } from './auth.service';
 
 /**

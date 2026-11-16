@@ -1,17 +1,17 @@
-import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { finalize, map, Observable, shareReplay, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
+import type {
   ActivarDosFactoresResponse,
-  ApiResponse,
   CambioPasswordRequest,
   LoginRequest,
   LoginResponse,
   TokenResponse,
   UsuarioSesion,
-} from '../models/auth.models';
+} from '../../api/auth';
+import { AutenticacionService } from '../../api/auth/services/autenticacion.service';
+import { DosFactoresService } from '../../api/auth/services/dos-factores.service';
 import { RUTA_INICIO_POR_ROL } from './role-home';
 import { TokenStorageService } from './token-storage.service';
 
@@ -25,7 +25,9 @@ export interface DosFactoresPendiente {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly http = inject(HttpClient);
+  /** Clientes generados desde auth-api.yaml (npm run api:gen). */
+  private readonly api = inject(AutenticacionService);
+  private readonly dosFactores = inject(DosFactoresService);
   private readonly router = inject(Router);
   private readonly storage = inject(TokenStorageService);
 
@@ -43,7 +45,7 @@ export class AuthService {
 
   /** Paso 1 del login. Si la cuenta tiene 2FA, deja el token temporal pendiente. */
   login(request: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<ApiResponse<LoginResponse>>(`${AUTH_URL}/login`, request).pipe(
+    return this.api.login({ body: request }).pipe(
       map((r) => r.data),
       tap((data) => {
         if (data.requiereDosFactores && data.tokenTemporal) {
@@ -61,11 +63,8 @@ export class AuthService {
     if (!pendiente) {
       return throwError(() => new Error('No hay un inicio de sesión pendiente de verificación.'));
     }
-    return this.http
-      .post<ApiResponse<TokenResponse>>(`${AUTH_URL}/2fa/verify`, {
-        tokenTemporal: pendiente.tokenTemporal,
-        codigo,
-      })
+    return this.dosFactores
+      .verificarDosFactores({ body: { tokenTemporal: pendiente.tokenTemporal, codigo } })
       .pipe(
         map((r) => r.data),
         tap((tokens) => this.iniciarSesion(tokens)),
@@ -87,41 +86,37 @@ export class AuthService {
       return throwError(() => new Error('No hay refresh token.'));
     }
     if (!this.refrescoEnCurso) {
-      this.refrescoEnCurso = this.http
-        .post<ApiResponse<TokenResponse>>(`${AUTH_URL}/refresh`, { refreshToken })
-        .pipe(
-          map((r) => r.data),
-          tap((tokens) => this.guardarSesion(tokens)),
-          finalize(() => (this.refrescoEnCurso = null)),
-          shareReplay(1),
-        );
+      this.refrescoEnCurso = this.api.refrescar({ body: { refreshToken } }).pipe(
+        map((r) => r.data),
+        tap((tokens) => this.guardarSesion(tokens)),
+        finalize(() => (this.refrescoEnCurso = null)),
+        shareReplay(1),
+      );
     }
     return this.refrescoEnCurso;
   }
 
   /** El backend devuelve tokens nuevos: los anteriores quedan revocados. */
   cambiarPassword(request: CambioPasswordRequest): Observable<TokenResponse> {
-    return this.http.post<ApiResponse<TokenResponse>>(`${AUTH_URL}/password/change`, request).pipe(
+    return this.api.cambiarPassword({ body: request }).pipe(
       map((r) => r.data),
       tap((tokens) => this.guardarSesion(tokens)),
     );
   }
 
   activarDosFactores(): Observable<ActivarDosFactoresResponse> {
-    return this.http
-      .post<ApiResponse<ActivarDosFactoresResponse>>(`${AUTH_URL}/2fa/enable`, {})
-      .pipe(map((r) => r.data));
+    return this.dosFactores.activarDosFactores().pipe(map((r) => r.data));
   }
 
   confirmarDosFactores(codigo: string): Observable<void> {
-    return this.http
-      .post<ApiResponse<unknown>>(`${AUTH_URL}/2fa/confirm`, { codigo })
+    return this.dosFactores
+      .confirmarDosFactores({ body: { codigo } })
       .pipe(map(() => this.actualizarUsuario({ twoFactorEnabled: true })));
   }
 
   desactivarDosFactores(codigo: string): Observable<void> {
-    return this.http
-      .post<ApiResponse<unknown>>(`${AUTH_URL}/2fa/disable`, { codigo })
+    return this.dosFactores
+      .desactivarDosFactores({ body: { codigo } })
       .pipe(map(() => this.actualizarUsuario({ twoFactorEnabled: false })));
   }
 
@@ -135,8 +130,8 @@ export class AuthService {
       this.cerrarSesionLocal();
       return;
     }
-    this.http
-      .post(`${AUTH_URL}/logout`, { refreshToken })
+    this.api
+      .logout({ body: { refreshToken } })
       .pipe(finalize(() => this.cerrarSesionLocal()))
       .subscribe({ error: () => undefined });
   }

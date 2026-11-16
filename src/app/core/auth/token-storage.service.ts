@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { TokenResponse } from '../models/auth.models';
+import type { TokenResponse } from '../../api/auth';
 
 const CLAVE = 'repositorio.sesion';
 

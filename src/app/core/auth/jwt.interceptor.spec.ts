@@ -1,6 +1,7 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideApi } from '../api/api.providers';
 import { provideRouter, Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AUTH_URL, AuthService } from './auth.service';
@@ -21,6 +22,7 @@ describe('jwtInterceptor', () => {
       providers: [
         provideHttpClient(withInterceptors([jwtInterceptor])),
         provideHttpClientTesting(),
+        provideApi(),
         provideRouter([{ path: '**', component: PaginaVacia }]),
       ],
     });
@@ -33,6 +35,17 @@ describe('jwtInterceptor', () => {
   it('agrega el Bearer a las llamadas de la API', () => {
     client.get(RECURSO).subscribe();
     expect(http.expectOne(RECURSO).request.headers.get('Authorization')).toBe('Bearer access-1');
+  });
+
+  it('agrega el Bearer a auth-service y a catalog-service (mismo origen /api/v1)', () => {
+    const catalogo = `${environment.apiUrl}/facultades`;
+    client.get(catalogo).subscribe();
+    client.post(`${AUTH_URL}/2fa/enable`, {}).subscribe();
+
+    expect(http.expectOne(catalogo).request.headers.get('Authorization')).toBe('Bearer access-1');
+    expect(http.expectOne(`${AUTH_URL}/2fa/enable`).request.headers.get('Authorization')).toBe(
+      'Bearer access-1',
+    );
   });
 
   it('no envia el token a dominios externos ni a los endpoints de login', () => {

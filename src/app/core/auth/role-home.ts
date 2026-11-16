@@ -1,4 +1,4 @@
-import { Rol } from '../models/auth.models';
+import type { Rol } from '../../api/auth';
 
 /** Ruta de inicio (dashboard) de cada rol. */
 export const RUTA_INICIO_POR_ROL: Record<Rol, string> = {

@@ -3,7 +3,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { mensajeDeError } from '../../core/http/error-message';
-import { ActivarDosFactoresResponse } from '../../core/models/auth.models';
+import type { ActivarDosFactoresResponse } from '../../api/auth';
 
 /**
  * Activacion opcional de 2FA desde el perfil, en dos pasos: /2fa/enable genera el secreto y

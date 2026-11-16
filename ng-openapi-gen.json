@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/ng-openapi-gen/ng-openapi-gen-schema.json",
+  "services": true,
+  "promises": false,
+  "apiService": false,
+  "enumStyle": "alias",
+  "ignoreUnusedModels": false,
+  "removeStaleFiles": true,
+  "endOfLineStyle": "lf",
+  "indexFile": true
+}
