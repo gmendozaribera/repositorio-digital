@@ -5,11 +5,23 @@ import { EstadoOpcional } from '../models/estado-opcional';
 import { Rol } from '../models/rol';
 export interface ActualizarUsuarioRequest {
   apellidos: string;
-  celular?: number | null;
-  ci: number;
+
+  /**
+   * Solo digitos, con prefijo internacional opcional (p. ej. 70012345 o +59170012345).
+   */
+  celular?: string | null;
+
+  /**
+   * Carnet de identidad, con complemento opcional (p. ej. 1234567 o 1234567-1A). Se guarda sin espacios y en mayusculas.
+   */
+  ci: string;
   correo: string;
   estado?: EstadoOpcional;
   fechaNac?: string | null;
+
+  /**
+   * Omitido o null conserva la carrera actual.
+   */
   idCarrera?: number | null;
   nombre: string;
   registro?: number | null;

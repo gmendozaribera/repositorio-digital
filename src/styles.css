@@ -728,3 +728,18 @@ h3 {
   flex: 1 1 260px;
   margin-bottom: 0;
 }
+
+/* Parametros del sistema (tabla de dominio): un bloque por grupo */
+.grupo-parametros + .grupo-parametros {
+  margin-top: 1.5rem;
+}
+
+.grupo-parametros h2 {
+  font-size: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.valor-parametro {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  overflow-wrap: anywhere;
+}

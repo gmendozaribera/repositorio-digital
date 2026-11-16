@@ -12,7 +12,7 @@ import { Rol } from '../../models/rol';
 
 export interface ListarUsuarios$Params {
   /**
-   * Texto libre; busca (sin distinguir mayusculas) en usuario, nombre, apellidos y correo, y por igualdad en CI y registro si es numerico.
+   * Texto libre; busca (sin distinguir mayusculas) en usuario, nombre, apellidos y correo, por igualdad en CI, y por igualdad en registro si es numerico.
    */
   q?: string;
 

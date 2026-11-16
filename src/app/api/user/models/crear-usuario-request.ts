@@ -5,13 +5,21 @@ import { PasswordTemporal } from '../models/password-temporal';
 import { Rol } from '../models/rol';
 export interface CrearUsuarioRequest {
   apellidos: string;
-  celular?: number | null;
-  ci: number;
+
+  /**
+   * Solo digitos, con prefijo internacional opcional (p. ej. 70012345 o +59170012345).
+   */
+  celular?: string | null;
+
+  /**
+   * Carnet de identidad, con complemento opcional (p. ej. 1234567 o 1234567-1A). Se guarda sin espacios y en mayusculas.
+   */
+  ci: string;
   correo: string;
   fechaNac?: string | null;
 
   /**
-   * Carrera de la persona. Obligatoria para ESTUDIANTE.
+   * Carrera de la persona. Obligatoria para ESTUDIANTE (un estudiante nunca queda sin carrera).
    */
   idCarrera?: number | null;
   nombre: string;

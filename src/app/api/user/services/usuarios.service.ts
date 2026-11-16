@@ -162,6 +162,9 @@ export class UsuariosService extends BaseService {
    * Actualizar usuario (ADMIN).
    *
    * Actualiza datos personales, rol y estado. El nombre de usuario (login) no se modifica.
+   * `registro` e `idCarrera` omitidos o null **conservan** el valor actual (no se borran).
+   * Un ESTUDIANTE siempre debe tener carrera y registro: se mantienen o se cambian, nunca quedan vacios
+   * (400 si al pasar a ESTUDIANTE no los tiene).
    * Cambiar el rol o desactivar (`estado: 0`) cierra todas las sesiones del usuario.
    * Un administrador no puede desactivarse ni quitarse el rol ADMIN a si mismo (400).
    *
@@ -182,6 +185,9 @@ export class UsuariosService extends BaseService {
    * Actualizar usuario (ADMIN).
    *
    * Actualiza datos personales, rol y estado. El nombre de usuario (login) no se modifica.
+   * `registro` e `idCarrera` omitidos o null **conservan** el valor actual (no se borran).
+   * Un ESTUDIANTE siempre debe tener carrera y registro: se mantienen o se cambian, nunca quedan vacios
+   * (400 si al pasar a ESTUDIANTE no los tiene).
    * Cambiar el rol o desactivar (`estado: 0`) cierra todas las sesiones del usuario.
    * Un administrador no puede desactivarse ni quitarse el rol ADMIN a si mismo (400).
    *

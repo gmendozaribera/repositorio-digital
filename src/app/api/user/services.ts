@@ -4,3 +4,4 @@
 export { UsuariosService } from './services/usuarios.service';
 export { TiposUsuarioService } from './services/tipos-usuario.service';
 export { PadronService } from './services/padron.service';
+export { DominiosService } from './services/dominios.service';

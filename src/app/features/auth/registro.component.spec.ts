@@ -58,14 +58,14 @@ describe('RegistroComponent', () => {
 
   afterEach(() => http.verify());
 
-  it('exige CI y registro numericos antes de llamar al backend', async () => {
+  it('valida el formato del CI y el registro antes de llamar al backend', async () => {
     await enviar('12a', '');
     http.expectNone(URL_REGISTRO);
     const errores = Array.from(pagina.querySelectorAll('.field-error')).map((e) =>
       e.textContent?.trim(),
     );
     expect(errores).toEqual([
-      'Ingresa tu CI (solo números).',
+      'Ingresa tu CI. De 4 a 12 dígitos, con complemento opcional (p. ej. 1234567 o 1234567-1A).',
       'Ingresa tu número de registro (solo números).',
     ]);
   });
@@ -75,7 +75,7 @@ describe('RegistroComponent', () => {
 
     const req = http.expectOne(URL_REGISTRO);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ ci: 7654321, registro: 219012345 });
+    expect(req.request.body).toEqual({ ci: '7654321', registro: 219012345 });
     req.flush(
       {
         data: { usuario: '219012345' },
@@ -96,7 +96,7 @@ describe('RegistroComponent', () => {
   });
 
   it('404: muestra el mensaje del servidor (no esta en el padron)', async () => {
-    await enviar('1', '2');
+    await enviar('1234567', '2');
     http
       .expectOne(URL_REGISTRO)
       .flush(problema(404, 'No encontrado en el padron institucional. Contacte a su facultad.'), {
@@ -110,7 +110,7 @@ describe('RegistroComponent', () => {
   });
 
   it('409: avisa que la cuenta ya existe y sugiere contactar a la facultad', async () => {
-    await enviar('1', '2');
+    await enviar('1234567', '2');
     http
       .expectOne(URL_REGISTRO)
       .flush(problema(409, 'Ya tiene una cuenta'), { status: 409, statusText: 'Conflict' });
@@ -121,7 +121,7 @@ describe('RegistroComponent', () => {
   });
 
   it('400: muestra los errores del servidor en cada campo', async () => {
-    await enviar('1', '2');
+    await enviar('1234567', '2');
     http
       .expectOne(URL_REGISTRO)
       .flush(problema(400, 'Datos inválidos', { registro: 'debe ser mayor que 0' }), {
@@ -130,5 +130,34 @@ describe('RegistroComponent', () => {
       });
     await render();
     expect(pagina.querySelector('.field-error')?.textContent?.trim()).toBe('debe ser mayor que 0');
+  });
+
+  it('acepta CI con complemento y lo envía sin espacios y en mayúsculas', async () => {
+    await enviar(' 7654321-1a ', '219012345');
+    const req = http.expectOne(URL_REGISTRO);
+    expect(req.request.body).toEqual({ ci: '7654321-1A', registro: 219012345 });
+    req.flush(problema(404, 'No encontrado'), { status: 404, statusText: 'Not Found' });
+  });
+
+  it('429: avisa cuántos minutos esperar (Retry-After) y bloquea el botón', async () => {
+    await enviar('7654321', '219012345');
+    http.expectOne(URL_REGISTRO).flush(problema(429, 'Demasiados intentos fallidos.'), {
+      status: 429,
+      statusText: 'Too Many Requests',
+      headers: { 'Retry-After': '61' },
+    });
+    await render();
+
+    expect(pagina.querySelector('.alert-warn')?.textContent?.trim()).toBe(
+      'Demasiados intentos fallidos. Podrás intentar de nuevo en 2 minutos.',
+    );
+    const boton = pagina.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    expect(boton.disabled).toBe(true);
+    expect(boton.textContent).toContain('Reintentar en 1:01');
+
+    // Aunque se fuerce el envio, no se llama al backend mientras dure el bloqueo.
+    pagina.querySelector('form')!.dispatchEvent(new Event('submit'));
+    http.expectNone(URL_REGISTRO);
+    fixture.destroy();
   });
 });

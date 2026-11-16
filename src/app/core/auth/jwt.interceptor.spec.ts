@@ -135,4 +135,33 @@ describe('jwtInterceptor', () => {
     expect(status).toBe(401);
     http.expectNone(`${AUTH_URL}/refresh`);
   });
+
+  it('un 429 (demasiados intentos) nunca dispara refresh: llega intacto con su Retry-After', () => {
+    const errores: { status: number; retryAfter: string | null }[] = [];
+    const guardar = (e: { status: number; headers: { get(n: string): string | null } }) =>
+      errores.push({ status: e.status, retryAfter: e.headers.get('Retry-After') });
+
+    client.post(`${AUTH_URL}/login`, {}).subscribe({ error: guardar });
+    client.post(`${AUTH_URL}/register`, {}).subscribe({ error: guardar });
+    client.get(RECURSO).subscribe({ error: guardar });
+
+    const limite = {
+      status: 429,
+      statusText: 'Too Many Requests',
+      headers: { 'Retry-After': '900' },
+    };
+    const registro = http.expectOne(`${AUTH_URL}/register`);
+    expect(registro.request.headers.has('Authorization')).toBe(false);
+    http.expectOne(`${AUTH_URL}/login`).flush(null, limite);
+    registro.flush(null, limite);
+    http.expectOne(RECURSO).flush(null, limite);
+
+    http.expectNone(`${AUTH_URL}/refresh`);
+    expect(errores).toEqual([
+      { status: 429, retryAfter: '900' },
+      { status: 429, retryAfter: '900' },
+      { status: 429, retryAfter: '900' },
+    ]);
+    expect(TestBed.inject(AuthService).autenticado()).toBe(true);
+  });
 });

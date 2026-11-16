@@ -8,8 +8,10 @@ import {
   errorDelServidor,
   mensajeDeError,
 } from '../../core/http/error-message';
+import { crearEsperaPorIntentos } from '../../core/http/limite-intentos';
+import { AYUDA_CI, MAX_CI, normalizarCi, validarCi } from '../../shared/documento-identidad';
 
-/** Solo digitos: CI y registro son enteros positivos en el contrato. */
+/** El registro universitario sigue siendo un entero positivo en el contrato. */
 const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
 
 /**
@@ -46,7 +48,9 @@ const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
             el padrón de tu facultad.
           </p>
 
-          @if (error()) {
+          @if (espera.mensaje(); as aviso) {
+            <p class="alert alert-warn" role="alert">{{ aviso }}</p>
+          } @else if (error()) {
             <p class="alert alert-danger" role="alert">{{ error() }}</p>
           }
 
@@ -55,14 +59,16 @@ const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
               <span>Carnet de identidad (CI)</span>
               <input
                 formControlName="ci"
-                inputmode="numeric"
                 autocomplete="off"
-                maxlength="10"
+                autocapitalize="characters"
+                spellcheck="false"
+                [attr.maxlength]="maxCi"
+                placeholder="1234567 o 1234567-1A"
                 autofocus
               />
               @if (form.controls.ci.touched && form.controls.ci.invalid) {
                 <small class="field-error">
-                  {{ errorDelServidor(form.controls.ci) ?? 'Ingresa tu CI (solo números).' }}
+                  {{ errorDelServidor(form.controls.ci) ?? 'Ingresa tu CI. ' + ayudaCi }}
                 </small>
               }
             </label>
@@ -85,8 +91,16 @@ const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
               }
             </label>
 
-            <button class="btn btn-primary btn-block" type="submit" [disabled]="cargando()">
-              {{ cargando() ? 'Verificando…' : 'Crear cuenta' }}
+            <button
+              class="btn btn-primary btn-block"
+              type="submit"
+              [disabled]="cargando() || espera.bloqueado()"
+            >
+              @if (espera.bloqueado()) {
+                Reintentar en {{ espera.cuentaRegresiva() }}
+              } @else {
+                {{ cargando() ? 'Verificando…' : 'Crear cuenta' }}
+              }
             </button>
           </form>
         }
@@ -104,13 +118,20 @@ export class RegistroComponent {
   /** Usuario de la cuenta creada; mientras es null se muestra el formulario. */
   protected readonly usuarioCreado = signal<string | null>(null);
   protected readonly errorDelServidor = errorDelServidor;
+  protected readonly ayudaCi = AYUDA_CI;
+  protected readonly maxCi = MAX_CI;
+  /** 429 por demasiados intentos fallidos desde esta IP: bloquea el boton hasta Retry-After. */
+  protected readonly espera = crearEsperaPorIntentos();
 
   protected readonly form = inject(NonNullableFormBuilder).group({
-    ci: ['', [Validators.required, Validators.pattern(ENTERO_POSITIVO)]],
+    ci: ['', [Validators.required, validarCi]],
     registro: ['', [Validators.required, Validators.pattern(ENTERO_POSITIVO)]],
   });
 
   protected registrar(): void {
+    if (this.espera.bloqueado()) {
+      return;
+    }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -118,15 +139,19 @@ export class RegistroComponent {
     const { ci, registro } = this.form.getRawValue();
     this.cargando.set(true);
     this.error.set(null);
+    this.espera.limpiarAviso();
 
-    this.auth.registrar({ ci: Number(ci), registro: Number(registro) }).subscribe({
+    // El CI se envia como lo guarda el backend: sin espacios y en MAYUSCULAS (1234567-1A).
+    this.auth.registrar({ ci: normalizarCi(ci), registro: Number(registro) }).subscribe({
       next: (r) => {
         this.cargando.set(false);
         this.usuarioCreado.set(r.usuario);
       },
       error: (err: unknown) => {
         this.cargando.set(false);
-        this.error.set(this.mensajeError(err));
+        if (!this.espera.manejar(err)) {
+          this.error.set(this.mensajeError(err));
+        }
       },
     });
   }

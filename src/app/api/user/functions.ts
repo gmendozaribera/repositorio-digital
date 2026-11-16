@@ -21,3 +21,13 @@ export type { ImportarPadron$Params as ImportarPadron$Params } from './fn/padron
 export { importarPadron as importarPadron } from './fn/padron/importar-padron';
 export type { ActualizarHabilitadoPadron$Params as ActualizarHabilitadoPadron$Params } from './fn/padron/actualizar-habilitado-padron';
 export { actualizarHabilitadoPadron as actualizarHabilitadoPadron } from './fn/padron/actualizar-habilitado-padron';
+export type { ListarDominios$Params as ListarDominios$Params } from './fn/dominios/listar-dominios';
+export { listarDominios as listarDominios } from './fn/dominios/listar-dominios';
+export type { CrearDominio$Params as CrearDominio$Params } from './fn/dominios/crear-dominio';
+export { crearDominio as crearDominio } from './fn/dominios/crear-dominio';
+export type { ObtenerDominio$Params as ObtenerDominio$Params } from './fn/dominios/obtener-dominio';
+export { obtenerDominio as obtenerDominio } from './fn/dominios/obtener-dominio';
+export type { ActualizarDominio$Params as ActualizarDominio$Params } from './fn/dominios/actualizar-dominio';
+export { actualizarDominio as actualizarDominio } from './fn/dominios/actualizar-dominio';
+export type { EliminarDominio$Params as EliminarDominio$Params } from './fn/dominios/eliminar-dominio';
+export { eliminarDominio as eliminarDominio } from './fn/dominios/eliminar-dominio';

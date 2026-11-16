@@ -11,7 +11,7 @@ import { RespuestaPaginaPadron } from '../../models/respuesta-pagina-padron';
 
 export interface ListarPadron$Params {
   /**
-   * Texto libre; busca en nombres, apellidos y correo, y por igualdad en CI y registro si es numerico.
+   * Texto libre; busca en nombres, apellidos y correo, por igualdad en CI, y por igualdad en registro si es numerico.
    */
   q?: string;
   idCarrera?: number;

@@ -57,7 +57,7 @@ describe('UsuarioService', () => {
       rol: 'DOCENTE' as const,
       nombre: 'María',
       apellidos: 'López',
-      ci: 7654321,
+      ci: '7654321',
       correo: 'maria.lopez@uagrm.edu.bo',
     };
     servicio.crear(alta).subscribe();

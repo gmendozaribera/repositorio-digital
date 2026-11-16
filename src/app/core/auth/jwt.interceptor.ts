@@ -34,6 +34,9 @@ function conToken(req: HttpRequest<unknown>, token: string): HttpRequest<unknown
  * expirado), pide uno nuevo con el refresh token y repite la peticion una sola vez. Si el
  * refresh tambien falla, la sesion termino: se limpia y se vuelve al login.
  *
+ * Solo el 401 dispara el refresh. Un 429 (demasiados intentos fallidos en login/registro) pasa
+ * intacto, con su cabecera Retry-After, para que la pantalla muestre cuanto esperar.
+ *
  * El token solo se envia a environment.apiUrl, nunca a dominios de terceros.
  */
 export const jwtInterceptor: HttpInterceptorFn = (req, next: HttpHandlerFn) => {

@@ -27,8 +27,8 @@ const ESTUDIANTE = {
   rol: 'ESTUDIANTE' as const,
   requiereCambioPassword: true,
   registro: 219012345,
-  idCarrera: 7,
-  siglaCarrera: 'INF',
+  idCarrera: 8,
+  siglaCarrera: 'OLD',
 };
 
 describe('UsuariosComponent', () => {
@@ -104,7 +104,7 @@ describe('UsuariosComponent', () => {
     expect(filas[0]).toContain('Administrador');
     expect(filas[0]).toContain('2FA');
     expect(filas[2]).toContain('Estudiante');
-    expect(filas[2]).toContain('INF');
+    expect(filas[2]).toContain('OLD');
     expect(filas[2]).toContain('Debe cambiar contraseña');
     expect(vista.querySelector('.paginador')?.textContent).toContain('1–3 de 3');
   });
@@ -162,7 +162,7 @@ describe('UsuariosComponent', () => {
       rol: 'ESTUDIANTE',
       nombre: 'Ana',
       apellidos: 'Rojas',
-      ci: 1234567,
+      ci: '1234567',
       correo: 'ana@uagrm.edu.bo',
       celular: null,
       fechaNac: null,
@@ -220,7 +220,75 @@ describe('UsuariosComponent', () => {
     expect(put.request.body.nombre).toBe('María José');
     expect(put.request.body).not.toHaveProperty('usuario');
     expect(put.request.body).not.toHaveProperty('estado');
+    // Docente: registro y carrera se omiten y el backend conserva los que tenga.
+    expect(put.request.body).not.toHaveProperty('registro');
+    expect(put.request.body).not.toHaveProperty('idCarrera');
+    expect(put.request.body.ci).toBe('7654321');
     put.flush(respuesta({ ...USUARIO_DOCENTE, nombre: 'María José' }));
+    listado([]);
+  });
+
+  it('CI y celular son texto: valida el patrón y normaliza (sin espacios, CI en mayúsculas)', async () => {
+    boton('Nuevo usuario').click();
+    await render();
+    elegir('rol', 2); // Docente
+    escribir('usuario', 'doc.nuevo');
+    escribir('passwordInicial', 'Temporal123');
+    escribir('nombre', 'Ana');
+    escribir('apellidos', 'Rojas');
+    escribir('correo', 'ana@uagrm.edu.bo');
+
+    escribir('ci', '12-ABCD');
+    escribir('celular', '700-123');
+    boton('Guardar').click();
+    await render();
+    http.expectNone((r) => r.method === 'POST');
+    expect(control('ci').closest('label')!.textContent).toContain('complemento opcional');
+    expect(control('celular').closest('label')!.textContent).toContain('De 7 a 15 dígitos');
+
+    escribir('ci', ' 1234567-1a ');
+    control('ci').dispatchEvent(new Event('blur'));
+    escribir('celular', '+591 70012345');
+    await render();
+    expect(control('ci').value).toBe('1234567-1A');
+
+    boton('Guardar').click();
+    const post = http.expectOne((r) => r.url === `${API}/usuarios` && r.method === 'POST');
+    expect(post.request.body.ci).toBe('1234567-1A');
+    expect(post.request.body.celular).toBe('+59170012345');
+    expect(post.request.body).not.toHaveProperty('registro');
+    expect(post.request.body).not.toHaveProperty('idCarrera');
+    post.flush(respuesta({ ...USUARIO_DOCENTE, ci: '1234567-1A' }), {
+      status: 201,
+      statusText: 'Created',
+    });
+    listado([]);
+  });
+
+  it('un estudiante nunca queda sin carrera: sin opción vacía al editar, aunque la carrera esté inactiva', async () => {
+    boton('Editar', vista.querySelectorAll('tbody tr')[2]).click();
+    await render();
+    const opciones = Array.from(control<HTMLSelectElement>('idCarrera').options).map((o) =>
+      o.textContent?.trim(),
+    );
+    // Sin "Seleccione…" y con la carrera actual (inactiva) para no dejar el select en blanco.
+    expect(opciones).toEqual(['INF — Informática', 'OLD — Cerrada (inactiva)']);
+    expect(control<HTMLSelectElement>('idCarrera').selectedIndex).toBe(1);
+
+    // Se puede cambiar de carrera.
+    elegir('idCarrera', 0);
+    escribir('registro', '');
+    boton('Guardar').click();
+    await render();
+    http.expectNone((r) => r.method === 'PUT');
+    expect(control('registro').closest('label')!.textContent).toContain('Ingrese el registro');
+
+    escribir('registro', '219012345');
+    boton('Guardar').click();
+    const put = http.expectOne(`${API}/usuarios/20`);
+    expect(put.request.body.idCarrera).toBe(7);
+    expect(put.request.body.registro).toBe(219012345);
+    put.flush(respuesta({ ...ESTUDIANTE, idCarrera: 7, siglaCarrera: 'INF' }));
     listado([]);
   });
 

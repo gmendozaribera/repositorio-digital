@@ -3,6 +3,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { mensajeDeError } from '../../core/http/error-message';
+import { crearEsperaPorIntentos } from '../../core/http/limite-intentos';
 
 @Component({
   selector: 'app-login',
@@ -18,7 +19,9 @@ import { mensajeDeError } from '../../core/http/error-message';
         @if (sesionExpirada) {
           <p class="alert alert-warn" role="status">Tu sesión expiró. Inicia sesión nuevamente.</p>
         }
-        @if (error()) {
+        @if (espera.mensaje(); as aviso) {
+          <p class="alert alert-warn" role="alert">{{ aviso }}</p>
+        } @else if (error()) {
           <p class="alert alert-danger" role="alert">{{ error() }}</p>
         }
 
@@ -44,8 +47,16 @@ import { mensajeDeError } from '../../core/http/error-message';
             }
           </label>
 
-          <button class="btn btn-primary btn-block" type="submit" [disabled]="cargando()">
-            {{ cargando() ? 'Ingresando…' : 'Iniciar sesión' }}
+          <button
+            class="btn btn-primary btn-block"
+            type="submit"
+            [disabled]="cargando() || espera.bloqueado()"
+          >
+            @if (espera.bloqueado()) {
+              Reintentar en {{ espera.cuentaRegresiva() }}
+            } @else {
+              {{ cargando() ? 'Ingresando…' : 'Iniciar sesión' }}
+            }
           </button>
         </form>
 
@@ -65,6 +76,8 @@ export class LoginComponent {
   protected readonly cargando = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly sesionExpirada = this.route.snapshot.queryParamMap.has('expirada');
+  /** 429 por demasiados intentos fallidos desde esta IP: bloquea el boton hasta Retry-After. */
+  protected readonly espera = crearEsperaPorIntentos();
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     // /registro redirige aqui con ?usuario=<registro> para que el estudiante solo escriba su contraseña.
@@ -76,12 +89,16 @@ export class LoginComponent {
   });
 
   protected ingresar(): void {
+    if (this.espera.bloqueado()) {
+      return;
+    }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
     this.cargando.set(true);
     this.error.set(null);
+    this.espera.limpiarAviso();
 
     this.auth.login(this.form.getRawValue()).subscribe({
       next: (respuesta) => {
@@ -95,7 +112,9 @@ export class LoginComponent {
       error: (err: unknown) => {
         this.cargando.set(false);
         this.form.controls.password.reset();
-        this.error.set(mensajeDeError(err, 'No se pudo iniciar sesión.'));
+        if (!this.espera.manejar(err)) {
+          this.error.set(mensajeDeError(err, 'No se pudo iniciar sesión.'));
+        }
       },
     });
   }

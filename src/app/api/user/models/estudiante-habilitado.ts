@@ -4,7 +4,7 @@
 import { Id } from '../models/id';
 export interface EstudianteHabilitado {
   apellidos: string;
-  ci: number;
+  ci: string;
   correo: string;
 
   /**

@@ -40,6 +40,16 @@ import {
   generarPasswordTemporal,
   VALIDADORES_PASSWORD_TEMPORAL,
 } from '../../../shared/password-temporal';
+import {
+  AYUDA_CELULAR,
+  AYUDA_CI,
+  MAX_CELULAR,
+  MAX_CI,
+  normalizarCelular,
+  normalizarCi,
+  validarCelular,
+  validarCi,
+} from '../../../shared/documento-identidad';
 
 const ACTIVO = 1;
 const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
@@ -50,14 +60,6 @@ export const ROLES: { valor: Rol; texto: string }[] = [
   { valor: 'DOCENTE', texto: 'Docente' },
   { valor: 'ESTUDIANTE', texto: 'Estudiante' },
 ];
-
-/** '' / null -> null; texto numerico -> number (los inputs numericos son de texto). */
-function enteroONull(valor: string | number | null | undefined): number | null {
-  if (valor === null || valor === undefined || valor === '') {
-    return null;
-  }
-  return Number(valor);
-}
 
 /**
  * Administracion de usuarios (personas + cuentas): listado paginado con filtros, alta, edicion,
@@ -213,10 +215,18 @@ function enteroONull(valor: string | number | null | undefined): number | null {
 
               <label class="field">
                 <span>CI</span>
-                <input formControlName="ci" inputmode="numeric" maxlength="10" autocomplete="off" />
+                <input
+                  formControlName="ci"
+                  [attr.maxlength]="maxCi"
+                  autocomplete="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                  placeholder="1234567 o 1234567-1A"
+                  (blur)="normalizarCampoCi()"
+                />
                 @if (form.controls.ci.touched && form.controls.ci.invalid) {
                   <small class="field-error">
-                    {{ errorDelServidor(form.controls.ci) ?? 'Ingrese el CI (solo números).' }}
+                    {{ errorDelServidor(form.controls.ci) ?? 'Ingrese el CI. ' + ayudaCi }}
                   </small>
                 }
               </label>
@@ -235,13 +245,15 @@ function enteroONull(valor: string | number | null | undefined): number | null {
                 <span>Celular (opcional)</span>
                 <input
                   formControlName="celular"
-                  inputmode="numeric"
-                  maxlength="10"
+                  type="tel"
+                  inputmode="tel"
+                  [attr.maxlength]="maxCelular"
                   autocomplete="off"
+                  placeholder="70012345"
                 />
                 @if (form.controls.celular.touched && form.controls.celular.invalid) {
                   <small class="field-error">
-                    {{ errorDelServidor(form.controls.celular) ?? 'Solo números.' }}
+                    {{ errorDelServidor(form.controls.celular) ?? ayudaCelular }}
                   </small>
                 }
               </label>
@@ -278,9 +290,15 @@ function enteroONull(valor: string | number | null | undefined): number | null {
                 <label class="field">
                   <span>Carrera</span>
                   <select formControlName="idCarrera">
-                    <option [ngValue]="null" disabled>Seleccione…</option>
-                    @for (c of carrerasActivas(); track c.idCarrera) {
-                      <option [ngValue]="c.idCarrera">{{ c.sigla }} — {{ c.nombre }}</option>
+                    <!-- Un estudiante nunca queda sin carrera: el marcador solo aparece mientras
+                         no hay ninguna elegida y no se puede volver a seleccionar. -->
+                    @if (form.controls.idCarrera.value === null) {
+                      <option [ngValue]="null" disabled>Seleccione…</option>
+                    }
+                    @for (c of carrerasDelFormulario(); track c.idCarrera) {
+                      <option [ngValue]="c.idCarrera">
+                        {{ c.sigla }} — {{ c.nombre }}{{ c.estado === ACTIVO ? '' : ' (inactiva)' }}
+                      </option>
                     }
                   </select>
                   @if (form.controls.idCarrera.touched && form.controls.idCarrera.invalid) {
@@ -468,6 +486,10 @@ export class UsuariosComponent implements OnInit {
   protected readonly roles = ROLES;
   protected readonly ACTIVO = ACTIVO;
   protected readonly ayudaPassword = AYUDA_PASSWORD_TEMPORAL;
+  protected readonly ayudaCi = AYUDA_CI;
+  protected readonly ayudaCelular = AYUDA_CELULAR;
+  protected readonly maxCi = MAX_CI;
+  protected readonly maxCelular = MAX_CELULAR;
   protected readonly errorDelServidor = errorDelServidor;
   protected readonly idPropio = computed(() => this.auth.usuario()?.idUsuario ?? null);
 
@@ -485,9 +507,14 @@ export class UsuariosComponent implements OnInit {
   protected readonly reseteando = signal<Usuario | null>(null);
 
   protected readonly carreras = signal<Carrera[]>([]);
-  protected readonly carrerasActivas = computed(() =>
-    this.carreras().filter((c) => c.estado === ACTIVO),
-  );
+  /**
+   * Carreras elegibles en el formulario: las activas y, al editar, la actual del usuario aunque
+   * este inactiva (si no, el select quedaria en blanco y pareceria que no tiene carrera).
+   */
+  protected readonly carrerasDelFormulario = computed(() => {
+    const actual = this.enEdicion()?.idCarrera ?? null;
+    return this.carreras().filter((c) => c.estado === ACTIVO || c.idCarrera === actual);
+  });
 
   private readonly primerCampo = viewChild<ElementRef<HTMLElement>>('primerCampo');
   private readonly campoReset = viewChild<ElementRef<HTMLElement>>('campoReset');
@@ -513,9 +540,9 @@ export class UsuariosComponent implements OnInit {
     rol: new FormControl<Rol | null>(null, Validators.required),
     nombre: ['', [Validators.required, Validators.maxLength(100)]],
     apellidos: ['', [Validators.required, Validators.maxLength(100)]],
-    ci: ['', [Validators.required, Validators.pattern(ENTERO_POSITIVO)]],
+    ci: ['', [Validators.required, validarCi]],
     correo: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
-    celular: ['', Validators.pattern(ENTERO_POSITIVO)],
+    celular: ['', validarCelular],
     fechaNac: [''],
     registro: ['', Validators.pattern(ENTERO_POSITIVO)],
     idCarrera: new FormControl<number | null>(null),
@@ -608,9 +635,9 @@ export class UsuariosComponent implements OnInit {
       rol: u.rol,
       nombre: u.nombre,
       apellidos: u.apellidos,
-      ci: String(u.ci),
+      ci: u.ci,
       correo: u.correo,
-      celular: u.celular === null ? '' : String(u.celular),
+      celular: u.celular ?? '',
       fechaNac: u.fechaNac ?? '',
       registro: u.registro === null ? '' : String(u.registro),
       idCarrera: u.idCarrera,
@@ -627,6 +654,15 @@ export class UsuariosComponent implements OnInit {
     this.errorFormulario.set(null);
   }
 
+  /** Muestra el CI como se guardara (sin espacios, en MAYUSCULAS) al salir del campo. */
+  protected normalizarCampoCi(): void {
+    const ci = this.form.controls.ci;
+    const normalizado = normalizarCi(ci.value);
+    if (normalizado !== ci.value) {
+      ci.setValue(normalizado);
+    }
+  }
+
   protected generarInicial(): void {
     this.form.controls.passwordInicial.setValue(generarPasswordTemporal());
     this.form.controls.passwordInicial.markAsTouched();
@@ -639,7 +675,7 @@ export class UsuariosComponent implements OnInit {
     }
     const actual = this.enEdicion();
     const peticion = actual
-      ? this.usuarios.actualizar(actual.idUsuario, this.requestActualizar(actual))
+      ? this.usuarios.actualizar(actual.idUsuario, this.requestActualizar())
       : this.usuarios.crear(this.requestCrear());
 
     this.guardando.set(true);
@@ -776,21 +812,24 @@ export class UsuariosComponent implements OnInit {
     idCarrera.updateValueAndValidity({ emitEvent: false });
   }
 
-  /** Campos comunes de alta y edicion a partir del formulario. */
-  private datosPersona(anterior: Usuario | null) {
+  /**
+   * Campos comunes de alta y edicion a partir del formulario. CI y celular viajan como texto
+   * normalizado (sin espacios; CI en MAYUSCULAS).
+   *
+   * Registro y carrera solo se envian para ESTUDIANTE (ahi son obligatorios). En otros roles se
+   * omiten: en el alta quedan vacios y en el PUT el backend conserva los que hubiera.
+   */
+  private datosPersona() {
     const v = this.form.getRawValue();
-    const estudiante = v.rol === 'ESTUDIANTE';
     return {
       rol: v.rol as Rol,
       nombre: v.nombre.trim(),
       apellidos: v.apellidos.trim(),
-      ci: Number(v.ci),
+      ci: normalizarCi(v.ci),
       correo: v.correo.trim(),
-      celular: enteroONull(v.celular),
+      celular: normalizarCelular(v.celular),
       fechaNac: v.fechaNac || null,
-      // Registro y carrera solo se editan para ESTUDIANTE; en otros roles se conserva lo que haya.
-      registro: estudiante ? enteroONull(v.registro) : (anterior?.registro ?? null),
-      idCarrera: estudiante ? v.idCarrera : (anterior?.idCarrera ?? null),
+      ...(v.rol === 'ESTUDIANTE' ? { registro: Number(v.registro), idCarrera: v.idCarrera } : {}),
     };
   }
 
@@ -799,16 +838,19 @@ export class UsuariosComponent implements OnInit {
     return {
       usuario: v.usuario.trim(),
       passwordInicial: v.passwordInicial,
-      ...this.datosPersona(null),
+      ...this.datosPersona(),
     };
   }
 
   /** Sin `estado`: el backend conserva el actual. */
-  private requestActualizar(anterior: Usuario): ActualizarUsuarioRequest {
-    return this.datosPersona(anterior);
+  private requestActualizar(): ActualizarUsuarioRequest {
+    return this.datosPersona();
   }
 
-  /** Request que reconstruye un usuario existente (para reactivarlo sin perder datos). */
+  /**
+   * Request para reactivar un usuario sin tocar sus datos. Registro y carrera se omiten: el
+   * backend los conserva.
+   */
   private requestDe(u: Usuario): ActualizarUsuarioRequest {
     return {
       rol: u.rol,
@@ -818,8 +860,6 @@ export class UsuariosComponent implements OnInit {
       correo: u.correo,
       celular: u.celular,
       fechaNac: u.fechaNac,
-      registro: u.registro,
-      idCarrera: u.idCarrera,
     };
   }
 

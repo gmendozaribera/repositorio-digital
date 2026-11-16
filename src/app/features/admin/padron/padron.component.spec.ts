@@ -16,7 +16,7 @@ const CARRERAS = [{ idCarrera: 7, nombre: 'Informática', sigla: 'INF', idFacult
 const JUAN = {
   id: 4,
   registro: 219012345,
-  ci: 7654321,
+  ci: '7654321',
   correo: 'juan.perez@uagrm.edu.bo',
   nombres: 'Juan Carlos',
   apellidos: 'Perez Lopez',

@@ -6,8 +6,8 @@ import { Id } from '../models/id';
 import { Rol } from '../models/rol';
 export interface Usuario {
   apellidos: string;
-  celular: number | null;
-  ci: number;
+  celular: string | null;
+  ci: string;
   correo: string;
   estado: Estado;
   fechaNac: string | null;
