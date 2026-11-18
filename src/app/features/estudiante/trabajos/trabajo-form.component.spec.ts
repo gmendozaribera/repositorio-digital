@@ -4,7 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { provideApi } from '../../../core/api/api.providers';
 import { PaginaVacia, respuesta, tokensDePrueba } from '../../../core/auth/testing';
-import { SIN_ACCIONES, trabajoDePrueba } from '../../../core/services/testing-trabajos';
+import { REGLAS, SIN_ACCIONES, trabajoDePrueba } from '../../../core/services/testing-trabajos';
 import { TrabajoFormComponent } from './trabajo-form.component';
 
 const API = '/api/v1';
@@ -73,13 +73,16 @@ describe('TrabajoFormComponent', () => {
     return Array.from(vista.querySelectorAll('.field-error')).map((e) => e.textContent!.trim());
   }
 
-  function listasDeFacultad(id = 1): void {
+  function listasDeFacultad(id = 1, maxAutores = 5): void {
     const conFacultad =
       (url: string) => (r: { url: string; params: { get(k: string): string | null } }) =>
         r.url === url && r.params.get('idFacultad') === String(id);
     http.expectOne(conFacultad(`${API}/materias`)).flush(respuesta(MATERIAS));
     http.expectOne(conFacultad(`${API}/semestres`)).flush(respuesta(SEMESTRES));
     http.expectOne(conFacultad(`${API}/tipos-trabajo`)).flush(respuesta(TIPOS));
+    http
+      .expectOne(conFacultad(`${API}/documentos/reglas`))
+      .flush(respuesta({ ...REGLAS, maxAutores }));
   }
 
   async function crear(id?: string): Promise<void> {
@@ -176,6 +179,30 @@ describe('TrabajoFormComponent', () => {
       boton('×').click();
       await render();
       expect(chips()).toEqual(['Reg. 219012346']);
+    });
+
+    it('limita los coautores a maxAutores - 1 según las reglas de la facultad', async () => {
+      await elegir('idFacultad', 1);
+      listasDeFacultad(1, 2);
+      await render();
+      expect(vista.textContent).toContain(
+        'Máximo 2 autores por trabajo contándote a ti (hasta 1 coautor)',
+      );
+      await agregarChip('nuevo-coautor', '219012346');
+      await agregarChip('nuevo-coautor', '219012347');
+      expect(chips()).toEqual(['Reg. 219012346']);
+      expect(errores()).toContain(
+        'Un trabajo puede tener como máximo 2 autores contándote a ti: puedes agregar hasta 1 coautor.',
+      );
+
+      // Otra facultad con un solo autor por trabajo.
+      await elegir('idFacultad', 2);
+      listasDeFacultad(2, 1);
+      await render();
+      boton('×').click();
+      await render();
+      await agregarChip('nuevo-coautor', '219012346');
+      expect(errores()[0]).toContain('no se pueden agregar coautores');
     });
 
     it('valida antes de enviar y al crear navega al detalle del borrador', async () => {
@@ -282,6 +309,31 @@ describe('TrabajoFormComponent', () => {
       expect(put.request.body.registrosCoautores).toEqual([219012346]);
       expect(put.request.body.idGrupo).toBe(3);
       put.flush(respuesta(trabajoDePrueba()));
+    });
+
+    it('excluye al autor marcado con esUsuarioActual (no por login ni nombre)', async () => {
+      await cargarEdicion({
+        autores: [
+          {
+            idPersona: 1,
+            nombre: 'Juan',
+            apellidos: 'Perez',
+            registro: 219012345,
+            esUsuarioActual: false,
+          },
+          {
+            idPersona: 2,
+            nombre: 'Ana',
+            apellidos: 'Rojas',
+            registro: 219012346,
+            esUsuarioActual: true,
+          },
+        ],
+      });
+      expect(chips()).toEqual(['#springboot', 'Juan Perez (219012345)']);
+      // Su propio registro tampoco se puede volver a agregar.
+      await agregarChip('nuevo-coautor', '219012346');
+      expect(errores()).toContain('Tú ya eres autor del trabajo.');
     });
 
     it('fuera de BORRADOR el grupo no se puede cambiar', async () => {

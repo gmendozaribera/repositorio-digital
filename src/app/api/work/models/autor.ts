@@ -3,6 +3,11 @@
 
 export interface Autor {
   apellidos: string;
+
+  /**
+   * true si este autor es el usuario autenticado (no debe ir en registrosCoautores).
+   */
+  esUsuarioActual: boolean;
   idPersona: number;
   nombre: string;
   registro: number | null;

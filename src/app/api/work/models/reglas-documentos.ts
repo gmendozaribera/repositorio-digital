@@ -5,5 +5,10 @@ import { FormatoCategoria } from '../models/formato-categoria';
 export interface ReglasDocumentos {
   formatos: Array<FormatoCategoria>;
   idFacultad: number;
+
+  /**
+   * Maximo de autores por trabajo (incluido el autor), parametro WORK_GROUP.MAX_AUTORES.
+   */
+  maxAutores: number;
   subidasPorMinuto: number;
 }

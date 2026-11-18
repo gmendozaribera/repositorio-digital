@@ -87,8 +87,20 @@ export function trabajoDePrueba(cambios: Partial<Trabajo> = {}): Trabajo {
     idTipoTrabajo: 4,
     tipoTrabajo: 'Proyecto de materia',
     autores: [
-      { idPersona: 1, nombre: 'Juan', apellidos: 'Perez', registro: 219012345 },
-      { idPersona: 2, nombre: 'Ana', apellidos: 'Rojas', registro: 219012346 },
+      {
+        idPersona: 1,
+        nombre: 'Juan',
+        apellidos: 'Perez',
+        registro: 219012345,
+        esUsuarioActual: true,
+      },
+      {
+        idPersona: 2,
+        nombre: 'Ana',
+        apellidos: 'Rojas',
+        registro: 219012346,
+        esUsuarioActual: false,
+      },
     ],
     hashtags: ['springboot'],
     documentos: [],
@@ -132,6 +144,7 @@ export function resumenDePrueba(cambios: Partial<TrabajoResumen> = {}): TrabajoR
 export const REGLAS: ReglasDocumentos = {
   idFacultad: 1,
   subidasPorMinuto: 10,
+  maxAutores: 5,
   formatos: [
     {
       categoria: 'DOCUMENTO',

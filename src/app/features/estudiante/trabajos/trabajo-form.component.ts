@@ -7,7 +7,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { forkJoin, Observable, of, Subscription } from 'rxjs';
+import { catchError, forkJoin, Observable, of, Subscription } from 'rxjs';
 import type { Facultad, Grupo, Materia, Semestre, TipoTrabajo } from '../../../api/catalog';
 import type { Autor, Trabajo, TrabajoRequest } from '../../../api/work';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -263,8 +263,11 @@ export function normalizarHashtag(texto: string): string {
               </button>
             </span>
             <small class="muted">
-              Número de registro de otros estudiantes. Tú ya figuras como autor. El total de autores
-              tiene un máximo definido por el sistema (por defecto 5).
+              Número de registro de otros estudiantes. Tú ya figuras como autor.
+              @if (maxAutores(); as max) {
+                Máximo {{ max }} autores por trabajo contándote a ti (hasta {{ maxCoautores() }}
+                {{ maxCoautores() === 1 ? 'coautor' : 'coautores' }}).
+              }
             </small>
             @if (errorCoautor() ?? errorDelServidor(form.controls.registrosCoautores); as e) {
               <small class="field-error">{{ e }}</small>
@@ -355,6 +358,16 @@ export class TrabajoFormComponent implements OnInit {
     initialValue: '',
   });
   protected readonly largoResumen = computed(() => this.resumen().length);
+
+  /** Maximo de autores por trabajo (incluido el autor) segun las reglas de la facultad elegida. */
+  protected readonly maxAutores = signal<number | null>(null);
+  /** Coautores permitidos: maxAutores - 1 (sin reglas, el tope del contrato). */
+  protected readonly maxCoautores = computed(() => {
+    const max = this.maxAutores();
+    return max === null ? MAX_COAUTORES : Math.min(MAX_COAUTORES, Math.max(0, max - 1));
+  });
+  /** Registro del autor autenticado en edicion (Autor.esUsuarioActual). */
+  private registroPropio: number | null = null;
 
   /** Nombres de los coautores ya guardados (en edicion), por numero de registro. */
   private readonly nombresCoautores = signal<Map<number, string>>(new Map());
@@ -460,7 +473,7 @@ export class TrabajoFormComponent implements OnInit {
       this.errorCoautor.set('El número de registro solo lleva dígitos.');
       return;
     }
-    if (texto === this.auth.usuario()?.usuario) {
+    if (texto === this.auth.usuario()?.usuario || registro === this.registroPropio) {
       this.errorCoautor.set('Tú ya eres autor del trabajo.');
       return;
     }
@@ -468,12 +481,27 @@ export class TrabajoFormComponent implements OnInit {
       this.errorCoautor.set(`El registro ${registro} ya está agregado.`);
       return;
     }
-    if (actuales.length >= MAX_COAUTORES) {
-      this.errorCoautor.set(`Máximo ${MAX_COAUTORES} coautores.`);
+    if (actuales.length >= this.maxCoautores()) {
+      this.errorCoautor.set(this.mensajeLimiteCoautores());
       return;
     }
     this.form.controls.registrosCoautores.setValue([...actuales, registro]);
     this.nuevoCoautor.setValue('');
+  }
+
+  private mensajeLimiteCoautores(): string {
+    const max = this.maxAutores();
+    const coautores = this.maxCoautores();
+    if (max === null) {
+      return `Máximo ${coautores} coautores.`;
+    }
+    if (coautores === 0) {
+      return `En esta facultad cada trabajo tiene un solo autor: no se pueden agregar coautores.`;
+    }
+    return (
+      `Un trabajo puede tener como máximo ${max} autores contándote a ti: puedes agregar hasta ` +
+      `${coautores} ${coautores === 1 ? 'coautor' : 'coautores'}.`
+    );
   }
 
   protected quitarCoautor(registro: number): void {
@@ -493,6 +521,13 @@ export class TrabajoFormComponent implements OnInit {
     // Lo escrito en los campos de chips y no agregado tambien cuenta.
     this.agregarHashtag();
     this.agregarCoautor();
+    // Si el limite es menor que los coautores ya cargados (p. ej. se bajo el parametro), avisar.
+    if (
+      !this.errorCoautor() &&
+      this.form.controls.registrosCoautores.value.length > this.maxCoautores()
+    ) {
+      this.errorCoautor.set(`${this.mensajeLimiteCoautores()} Quita los que sobran.`);
+    }
     if (this.form.invalid || this.errorHashtag() || this.errorCoautor()) {
       this.form.markAllAsTouched();
       return;
@@ -535,6 +570,7 @@ export class TrabajoFormComponent implements OnInit {
     this.materias.set([]);
     this.semestres.set([]);
     this.tipos.set([]);
+    this.maxAutores.set(null);
     this.habilitar(c.idMateria, false);
     this.habilitar(c.idSemestre, false);
     this.habilitar(c.idTipoTrabajo, false);
@@ -542,10 +578,11 @@ export class TrabajoFormComponent implements OnInit {
       return;
     }
     this.listasDeFacultad(idFacultad).subscribe({
-      next: ({ materias, semestres, tipos }) => {
+      next: ({ materias, semestres, tipos, reglas }) => {
         this.materias.set(materias);
         this.semestres.set(semestres);
         this.tipos.set(tipos);
+        this.maxAutores.set(reglas?.maxAutores ?? null);
         this.habilitar(c.idMateria, true);
         this.habilitar(c.idTipoTrabajo, true);
       },
@@ -559,6 +596,9 @@ export class TrabajoFormComponent implements OnInit {
       materias: this.catalogo.materias.listar({ idFacultad }),
       semestres: this.catalogo.semestres.listar({ idFacultad }),
       tipos: this.catalogo.tiposTrabajo.listar({ idFacultad }),
+      // Reglas de la facultad (maxAutores). Si fallan, el formulario sigue con el tope del
+      // contrato y el backend valida el limite real.
+      reglas: this.trabajos.reglas(idFacultad).pipe(catchError(() => of(null))),
     }).pipe(takeUntilDestroyed(this.destroyRef));
   }
 
@@ -607,6 +647,7 @@ export class TrabajoFormComponent implements OnInit {
 
   private cargarEdicion(t: Trabajo): void {
     this.trabajo.set(t);
+    this.registroPropio = t.autores.find((a) => a.esUsuarioActual)?.registro ?? null;
     const propios = this.coautoresDe(t.autores);
     this.nombresCoautores.set(
       new Map(propios.map((a) => [a.registro!, `${a.nombre} ${a.apellidos}`])),
@@ -621,6 +662,7 @@ export class TrabajoFormComponent implements OnInit {
           this.materias.set(listas.materias);
           this.semestres.set(listas.semestres);
           this.tipos.set(listas.tipos);
+          this.maxAutores.set(listas.reglas?.maxAutores ?? null);
           this.grupos.set(grupos);
           this.form.setValue(
             {
@@ -654,16 +696,10 @@ export class TrabajoFormComponent implements OnInit {
   }
 
   /**
-   * Coautores = autores menos el usuario autenticado (el contrato pide no incluirlo). El detalle no
-   * marca cual autor es el usuario actual: se reconoce por su login (el de un estudiante es su
-   * numero de registro) o, si no coincide, por nombre y apellidos.
+   * Coautores = autores menos el usuario autenticado, que el backend marca con
+   * `esUsuarioActual` (el contrato pide no incluirlo en `registrosCoautores`).
    */
   private coautoresDe(autores: Autor[]): Autor[] {
-    const yo = this.auth.usuario();
-    const esYo = (a: Autor) =>
-      !!yo &&
-      ((a.registro !== null && String(a.registro) === yo.usuario) ||
-        (a.nombre.trim() === yo.nombre.trim() && a.apellidos.trim() === yo.apellidos.trim()));
-    return autores.filter((a) => a.registro !== null && !esYo(a));
+    return autores.filter((a) => !a.esUsuarioActual && a.registro !== null);
   }
 }
