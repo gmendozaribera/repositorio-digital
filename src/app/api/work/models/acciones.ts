@@ -6,6 +6,7 @@
  */
 export interface Acciones {
   aprobar: boolean;
+  calificar: boolean;
   editar: boolean;
   eliminar: boolean;
   enviar: boolean;

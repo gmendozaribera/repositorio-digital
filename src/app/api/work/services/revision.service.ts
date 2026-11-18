@@ -12,6 +12,8 @@ import { StrictHttpResponse } from '../strict-http-response';
 
 import { aprobarTrabajo } from '../fn/revision/aprobar-trabajo';
 import { AprobarTrabajo$Params } from '../fn/revision/aprobar-trabajo';
+import { calificarTrabajo } from '../fn/revision/calificar-trabajo';
+import { CalificarTrabajo$Params } from '../fn/revision/calificar-trabajo';
 import { listarTrabajosRevision } from '../fn/revision/listar-trabajos-revision';
 import { ListarTrabajosRevision$Params } from '../fn/revision/listar-trabajos-revision';
 import { rechazarTrabajo } from '../fn/revision/rechazar-trabajo';
@@ -188,6 +190,49 @@ export class RevisionService extends BaseService {
     context?: HttpContext,
   ): Observable<RespuestaTrabajo> {
     const resp = this.rechazarTrabajo$Response(params, context);
+    return resp.pipe(map((r: StrictHttpResponse<RespuestaTrabajo>): RespuestaTrabajo => r.body));
+  }
+
+  /** Path part for operation `calificarTrabajo()` */
+  static readonly CalificarTrabajoPath = '/api/v1/trabajos/{id}/calificar';
+
+  /**
+   * Calificar y publicar (Administrador de Curso del grupo).
+   *
+   * Solo desde `APROBADO` (409 en otro estado). La calificacion va de 0 a `ConfigFacultad.escalaCalifMax`
+   * de la facultad del trabajo (400 con el rango permitido). El trabajo pasa a `EVALUADO`, queda visible en el
+   * repositorio y se notifica a los autores. Un docente del grupo que no es Administrador de Curso recibe 403.
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `calificarTrabajo()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  calificarTrabajo$Response(
+    params: CalificarTrabajo$Params,
+    context?: HttpContext,
+  ): Observable<StrictHttpResponse<RespuestaTrabajo>> {
+    const obs = calificarTrabajo(this.http, this.rootUrl, params, context);
+    return obs;
+  }
+
+  /**
+   * Calificar y publicar (Administrador de Curso del grupo).
+   *
+   * Solo desde `APROBADO` (409 en otro estado). La calificacion va de 0 a `ConfigFacultad.escalaCalifMax`
+   * de la facultad del trabajo (400 con el rango permitido). El trabajo pasa a `EVALUADO`, queda visible en el
+   * repositorio y se notifica a los autores. Un docente del grupo que no es Administrador de Curso recibe 403.
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `calificarTrabajo$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  calificarTrabajo(
+    params: CalificarTrabajo$Params,
+    context?: HttpContext,
+  ): Observable<RespuestaTrabajo> {
+    const resp = this.calificarTrabajo$Response(params, context);
     return resp.pipe(map((r: StrictHttpResponse<RespuestaTrabajo>): RespuestaTrabajo => r.body));
   }
 }

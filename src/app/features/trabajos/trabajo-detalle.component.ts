@@ -18,6 +18,7 @@ import {
   FormControl,
   NonNullableFormBuilder,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -56,7 +57,12 @@ interface GrupoFase {
   documentos: Documento[];
 }
 
-type Dialogo = 'aprobar' | 'rechazar' | null;
+type Dialogo = 'aprobar' | 'rechazar' | 'calificar' | null;
+
+/** La calificacion es un entero (work-api: CalificarRequest.calificacion int32). */
+function entero(c: AbstractControl<number | null>): ValidationErrors | null {
+  return c.value === null || Number.isInteger(c.value) ? null : { entero: true };
+}
 
 /**
  * Detalle de un trabajo (`/trabajos/:id`), compartido por estudiante, docente y admin; es el
@@ -118,6 +124,12 @@ type Dialogo = 'aprobar' | 'rechazar' | null;
               }
             </dd>
           </div>
+          @if (t.calificacion !== null && t.calificacion !== undefined) {
+            <div>
+              <dt>Calificación</dt>
+              <dd class="calificacion">{{ t.calificacion }} / {{ t.escalaCalifMax }}</dd>
+            </div>
+          }
           @if (t.fechaEnvio) {
             <div>
               <dt>Enviado</dt>
@@ -187,6 +199,16 @@ type Dialogo = 'aprobar' | 'rechazar' | null;
                 (click)="abrirDialogo('aprobar')"
               >
                 Aprobar…
+              </button>
+            }
+            @if (t.acciones.calificar) {
+              <button
+                class="btn btn-primary"
+                type="button"
+                [disabled]="ocupado()"
+                (click)="abrirDialogo('calificar')"
+              >
+                Calificar y publicar…
               </button>
             }
             @if (t.acciones.rechazar) {
@@ -310,6 +332,57 @@ type Dialogo = 'aprobar' | 'rechazar' | null;
               <div class="form-actions">
                 <button class="btn btn-danger" type="submit" [disabled]="ocupado()">
                   Rechazar
+                </button>
+                <button class="btn btn-link" type="button" (click)="cerrarDialogo()">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </section>
+        }
+
+        @if (dialogo() === 'calificar') {
+          <section
+            class="panel"
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby="titulo-calificar"
+            aria-describedby="ayuda-calificar"
+          >
+            <h2 id="titulo-calificar">Calificar y publicar</h2>
+            <p id="ayuda-calificar" class="alert alert-info">
+              Al calificarlo, el trabajo pasará a <strong>Evaluado</strong>: quedará publicado y
+              visible en el repositorio, y los autores recibirán un aviso. La calificación solo la
+              ven los autores y los docentes del grupo; nunca aparece en el repositorio. Esta acción
+              no se puede deshacer.
+            </p>
+            <form [formGroup]="formCalificar" (ngSubmit)="calificar()" novalidate>
+              <label class="field">
+                <span>Calificación (de 0 a {{ t.escalaCalifMax }})</span>
+                <input
+                  #campoDialogo
+                  type="number"
+                  inputmode="numeric"
+                  formControlName="calificacion"
+                  min="0"
+                  [attr.max]="t.escalaCalifMax"
+                  step="1"
+                />
+                @if (
+                  formCalificar.controls.calificacion.touched &&
+                  formCalificar.controls.calificacion.invalid
+                ) {
+                  <small class="field-error">
+                    {{
+                      errorDelServidor(formCalificar.controls.calificacion) ??
+                        'Ingresa un número entero entre 0 y ' + t.escalaCalifMax + '.'
+                    }}
+                  </small>
+                }
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit" [disabled]="ocupado()">
+                  Calificar y publicar
                 </button>
                 <button class="btn btn-link" type="button" (click)="cerrarDialogo()">
                   Cancelar
@@ -562,6 +635,9 @@ export class TrabajoDetalleComponent implements OnInit {
       [Validators.required, Validators.minLength(MIN_MOTIVO), Validators.maxLength(MAX_TEXTO)],
     ],
   });
+  protected readonly formCalificar = this.fb.group({
+    calificacion: new FormControl<number | null>(null),
+  });
   protected readonly formEnlace = this.fb.group({
     categoria: new FormControl<CategoriaDocumento | null>(null, Validators.required),
     titulo: ['', [Validators.required, Validators.maxLength(200)]],
@@ -777,6 +853,15 @@ export class TrabajoDetalleComponent implements OnInit {
   protected abrirDialogo(tipo: Exclude<Dialogo, null>): void {
     this.formAprobar.reset();
     this.formRechazar.reset();
+    // El maximo es la escala vigente de la facultad (el backend vuelve a validar el rango).
+    const calificacion = this.formCalificar.controls.calificacion;
+    calificacion.setValidators([
+      Validators.required,
+      Validators.min(0),
+      Validators.max(this.trabajo()?.escalaCalifMax ?? 0),
+      entero,
+    ]);
+    this.formCalificar.reset();
     this.limpiarAvisos();
     this.dialogo.set(tipo);
     afterNextRender(() => this.campoDialogo()?.nativeElement.focus(), { injector: this.injector });
@@ -813,6 +898,28 @@ export class TrabajoDetalleComponent implements OnInit {
       this.trabajos.rechazar(t.idTrabajo, this.formRechazar.getRawValue().motivo),
       'Trabajo rechazado. Los autores fueron avisados con el motivo.',
       this.formRechazar,
+    );
+  }
+
+  protected calificar(): void {
+    if (this.formCalificar.invalid) {
+      this.formCalificar.markAllAsTouched();
+      return;
+    }
+    const t = this.trabajo()!;
+    const nota = this.formCalificar.getRawValue().calificacion!;
+    if (
+      !confirm(
+        `¿Calificar «${t.titulo}» con ${nota} / ${t.escalaCalifMax} y publicarlo en el ` +
+          'repositorio? Esta acción no se puede deshacer.',
+      )
+    ) {
+      return;
+    }
+    this.ejecutar(
+      this.trabajos.calificar(t.idTrabajo, nota),
+      'Trabajo calificado y publicado en el repositorio. Los autores fueron avisados.',
+      this.formCalificar,
     );
   }
 

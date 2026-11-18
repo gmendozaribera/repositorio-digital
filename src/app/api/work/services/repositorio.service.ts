@@ -32,9 +32,10 @@ export class RepositorioService extends BaseService {
   /**
    * Buscar trabajos evaluados (cualquier usuario autenticado).
    *
-   * Solo trabajos `EVALUADO`. Todos los filtros se combinan (Y). `q` busca, sin distinguir mayusculas ni
-   * tildes, en titulo, resumen y hashtags (busqueda simple; la full-text llega en el Sprint 4).
-   * Orden: mas recientes primero.
+   * Solo trabajos `EVALUADO`. Todos los filtros se combinan (Y).
+   * `q` es una busqueda **full-text** en espanol (sin distinguir mayusculas ni tildes, con raices:
+   * "sistemas" encuentra "sistema") sobre titulo, resumen y hashtags. Admite frases entre comillas y
+   * `-palabra` para excluir. Orden: con `q`, por relevancia; sin `q`, los mas recientes primero.
    *
    * This method provides access to the full `HttpResponse`, allowing access to response headers.
    * To access only the response body, use `buscarRepositorio()` instead.
@@ -52,9 +53,10 @@ export class RepositorioService extends BaseService {
   /**
    * Buscar trabajos evaluados (cualquier usuario autenticado).
    *
-   * Solo trabajos `EVALUADO`. Todos los filtros se combinan (Y). `q` busca, sin distinguir mayusculas ni
-   * tildes, en titulo, resumen y hashtags (busqueda simple; la full-text llega en el Sprint 4).
-   * Orden: mas recientes primero.
+   * Solo trabajos `EVALUADO`. Todos los filtros se combinan (Y).
+   * `q` es una busqueda **full-text** en espanol (sin distinguir mayusculas ni tildes, con raices:
+   * "sistemas" encuentra "sistema") sobre titulo, resumen y hashtags. Admite frases entre comillas y
+   * `-palabra` para excluir. Orden: con `q`, por relevancia; sin `q`, los mas recientes primero.
    *
    * This method provides access only to the response body.
    * To access the full response (for headers, for example), `buscarRepositorio$Response()` instead.

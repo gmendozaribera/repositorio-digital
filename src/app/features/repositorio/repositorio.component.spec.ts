@@ -273,4 +273,78 @@ describe('RepositorioComponent', () => {
       vista.querySelector('.tarjeta-trabajo .chips button')?.getAttribute('aria-pressed'),
     ).toBe('true');
   });
+
+  // ------------------------------------------------------------------ Sprint 4: full-text y grupo
+
+  const GRUPOS = [
+    { idGrupo: 9, idMateria: 10, idSemestre: 5, nombre: 'SB', estado: 0 },
+    { idGrupo: 3, idMateria: 10, idSemestre: 5, nombre: 'SA', estado: 1 },
+  ];
+
+  function grupos(idSemestre: number) {
+    const req = http.expectOne(
+      (r) =>
+        r.url === `${API}/grupos` &&
+        r.params.get('idFacultad') === '1' &&
+        r.params.get('idMateria') === '10' &&
+        r.params.get('idSemestre') === String(idSemestre) &&
+        r.params.get('incluirInactivos') === 'true',
+    );
+    req.flush(respuesta(GRUPOS));
+  }
+
+  it('ayuda de sintaxis y orden: por relevancia con texto, más recientes sin texto', async () => {
+    await abrir('/repositorio', undefined, [resultadoRepositorioDePrueba()]);
+    expect(vista.querySelector('#ayuda-sintaxis')?.textContent).toContain('frase exacta');
+    expect(vista.querySelector('#ayuda-sintaxis')?.textContent).toContain('-web');
+    expect(vista.querySelector('.orden-resultados')?.textContent?.trim()).toBe(
+      'Más recientes primero',
+    );
+
+    await harness.navigateByUrl('/repositorio?q=%22sistema%20de%20inventarios%22%20-web');
+    const req = busqueda([resultadoRepositorioDePrueba()]);
+    // La sintaxis (comillas y -palabra) viaja tal cual: la interpreta el backend.
+    expect(req.request.params.get('q')).toBe('"sistema de inventarios" -web');
+    await render();
+    expect(vista.querySelector('.orden-resultados')?.textContent?.trim()).toBe(
+      'Ordenado por relevancia',
+    );
+  });
+
+  it('el grupo depende de materia + semestre y se envía como idGrupo', async () => {
+    const req = await abrir('/repositorio?idFacultad=1&idMateria=10&idSemestre=5&idGrupo=3', 1);
+    expect(req.request.params.get('idGrupo')).toBe('3');
+    grupos(5);
+    await render();
+
+    expect(select('idGrupo').disabled).toBe(false);
+    expect(Array.from(select('idGrupo').options).map((o) => o.textContent?.trim())).toEqual([
+      'Todos los grupos',
+      'Grupo SA',
+      'Grupo SB',
+    ]);
+    expect(select('idGrupo').selectedOptions[0].textContent?.trim()).toBe('Grupo SA');
+
+    await elegir('idGrupo', 2);
+    expect(url()).toBe('/repositorio?idFacultad=1&idMateria=10&idSemestre=5&idGrupo=9');
+    expect(busqueda().request.params.get('idGrupo')).toBe('9');
+    await render();
+
+    // Cambiar el semestre limpia el grupo y recarga los grupos del nuevo semestre.
+    await elegir('idSemestre', 2); // 1-2026 (idSemestre 4)
+    expect(url()).toBe('/repositorio?idFacultad=1&idMateria=10&idSemestre=4');
+    const sinGrupo = busqueda();
+    expect(sinGrupo.request.params.has('idGrupo')).toBe(false);
+    grupos(4);
+    await render();
+    expect(select('idGrupo').value).toBe(select('idGrupo').options[0].value);
+  });
+
+  it('sin materia y semestre el grupo está deshabilitado y un idGrupo suelto se ignora', async () => {
+    const req = await abrir('/repositorio?idFacultad=1&idGrupo=3', 1);
+    expect(req.request.params.has('idGrupo')).toBe(false);
+    expect(select('idGrupo').disabled).toBe(true);
+    expect(select('idGrupo').options[0].textContent?.trim()).toBe('Elige materia y semestre');
+    expect(vista.querySelector('#ayuda-grupo')?.textContent).toContain('materia y semestre');
+  });
 });

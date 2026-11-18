@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth/auth.guard';
+import { authGuard, guestGuard, visitanteGuard } from './core/auth/auth.guard';
 import { AuthService } from './core/auth/auth.service';
 import { roleGuard } from './core/auth/role.guard';
 import { ShellComponent } from './layout/shell.component';
@@ -32,6 +32,12 @@ export const routes: Routes = [
     title: 'Cambiar contraseña · Repositorio Digital',
     loadComponent: () =>
       import('./features/auth/change-password.component').then((m) => m.ChangePasswordComponent),
+  },
+  {
+    // Repositorio publico sin login (/explorar, /explorar/:id). Con sesion redirige a /repositorio.
+    path: 'explorar',
+    canActivate: [visitanteGuard],
+    loadChildren: () => import('./features/repositorio/explorar.routes').then((m) => m.routes),
   },
   {
     path: '',

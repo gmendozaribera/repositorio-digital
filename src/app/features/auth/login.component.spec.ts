@@ -3,10 +3,11 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideApi } from '../../core/api/api.providers';
-import { PaginaVacia } from '../../core/auth/testing';
+import { PaginaVacia, respuesta } from '../../core/auth/testing';
 import { LoginComponent } from './login.component';
 
 const URL_LOGIN = '/api/v1/auth/login';
+const URL_ESTADO = '/api/v1/publico/estado';
 
 function problema(status: number, detail: string) {
   return { status, title: 'Error', detail, timestamp: new Date().toISOString() };
@@ -50,14 +51,51 @@ describe('LoginComponent', () => {
       ],
     });
     http = TestBed.inject(HttpTestingController);
+    await abrir(false);
+  });
+
+  /** Crea el login y responde el estado del repositorio publico. */
+  async function abrir(publicoHabilitado: boolean): Promise<void> {
+    fixture?.destroy();
     fixture = TestBed.createComponent(LoginComponent);
     pagina = fixture.nativeElement;
     await render();
-  });
+    const estado = http.expectOne(URL_ESTADO);
+    estado.flush(
+      respuesta({ habilitado: publicoHabilitado, facultades: publicoHabilitado ? [1] : [] }),
+    );
+    await render();
+  }
+
+  function enlaceExplorar(): HTMLAnchorElement | undefined {
+    return Array.from(pagina.querySelectorAll('a')).find((a) =>
+      a.textContent?.includes('Explorar el repositorio sin iniciar sesión'),
+    );
+  }
 
   afterEach(() => {
     fixture.destroy();
     http.verify();
+  });
+
+  it('sin acceso público habilitado no ofrece explorar el repositorio', () => {
+    expect(enlaceExplorar()).toBeUndefined();
+  });
+
+  it('con acceso público habilitado ofrece explorar el repositorio sin sesión', async () => {
+    await abrir(true);
+    expect(enlaceExplorar()?.getAttribute('href')).toBe('/explorar');
+  });
+
+  it('si el estado del acceso público falla, no muestra el enlace ni un error', async () => {
+    fixture.destroy();
+    fixture = TestBed.createComponent(LoginComponent);
+    pagina = fixture.nativeElement;
+    await render();
+    http.expectOne(URL_ESTADO).flush(null, { status: 503, statusText: 'Service Unavailable' });
+    await render();
+    expect(enlaceExplorar()).toBeUndefined();
+    expect(pagina.querySelector('.alert-danger')).toBeNull();
   });
 
   it('401: muestra el mensaje del servidor y deja reintentar', async () => {

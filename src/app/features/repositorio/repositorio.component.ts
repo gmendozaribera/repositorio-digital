@@ -3,11 +3,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, merge, Observable, Subscription } from 'rxjs';
-import type { Carrera, Facultad, Materia, Semestre, TipoTrabajo } from '../../api/catalog';
+import type { Carrera, Facultad, Grupo, Materia, Semestre, TipoTrabajo } from '../../api/catalog';
 import type { PaginaRepositorio } from '../../api/work';
 import { mensajeDeError } from '../../core/http/error-message';
 import { CatalogoService } from '../../core/services/catalogo.service';
-import { TrabajoService } from '../../core/services/trabajo.service';
 import { PaginadorComponent } from '../../shared/paginador.component';
 import {
   aFiltroApi,
@@ -21,20 +20,27 @@ import {
   UltimaBusquedaRepositorio,
   urlDeFiltros,
 } from './filtros-repositorio';
+import { FUENTE_REPOSITORIO } from './fuente-repositorio';
 
 /** Espera tras la ultima tecla antes de buscar (no se consulta en cada tecla). */
 export const DEBOUNCE_BUSQUEDA_MS = 400;
 
-const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idTipoTrabajo'] as const;
+const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipoTrabajo'] as const;
 
 /**
- * Repositorio de trabajos evaluados (CU11 basico): cualquier rol autenticado busca y filtra los
- * trabajos publicados (estado EVALUADO). La busqueda vive en los query params de la URL: se puede
- * compartir el enlace y atras/adelante del navegador restauran filtros y pagina.
+ * Repositorio de trabajos evaluados (CU11): busca y filtra los trabajos publicados (estado
+ * EVALUADO). La busqueda vive en los query params de la URL: se puede compartir el enlace y
+ * atras/adelante del navegador restauran filtros y pagina.
  *
- * Los filtros de carrera, materia, semestre y tipo dependen de la facultad elegida. Se listan
- * tambien los registros desactivados del catalogo: un trabajo de un semestre ya cerrado (o de una
- * materia que dejo de dictarse) sigue publicado y debe poder encontrarse.
+ * La busqueda por texto es full-text (frases entre comillas, `-palabra` excluye) y, con texto,
+ * los resultados vienen ordenados por relevancia.
+ *
+ * Los filtros de carrera, materia, semestre y tipo dependen de la facultad elegida, y el de grupo
+ * de materia + semestre. Se listan tambien los registros desactivados del catalogo: un trabajo de
+ * un semestre ya cerrado (o de una materia que dejo de dictarse) sigue publicado.
+ *
+ * Modo publico (`/explorar`, sin sesion; ver FuenteRepositorio): los catalogos exigen sesion, asi
+ * que solo se ofrece la busqueda por texto y hashtag.
  */
 @Component({
   selector: 'app-repositorio',
@@ -42,11 +48,17 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idTipoTrabajo'] a
   template: `
     <section class="card">
       <header class="page-header">
-        <h1>Repositorio de trabajos</h1>
+        <h1>{{ publico ? 'Explorar el repositorio' : 'Repositorio de trabajos' }}</h1>
       </header>
       <p class="muted">
-        Trabajos académicos evaluados de la facultad. Busca por título, resumen o hashtag y filtra
-        por facultad, carrera, materia, semestre o tipo de trabajo.
+        @if (publico) {
+          Trabajos académicos evaluados y publicados. Busca por título, resumen o hashtag. Para
+          descargar los documentos o filtrar por facultad, materia o semestre,
+          <a routerLink="/login">inicia sesión</a>.
+        } @else {
+          Trabajos académicos evaluados de la facultad. Busca por título, resumen o hashtag y filtra
+          por facultad, carrera, materia, semestre, grupo o tipo de trabajo.
+        }
       </p>
 
       <form class="buscador" [formGroup]="filtros" (ngSubmit)="buscarAhora()" role="search">
@@ -58,54 +70,70 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idTipoTrabajo'] a
             [attr.maxlength]="maxQ"
             placeholder="Título, resumen o hashtag"
             autocomplete="off"
+            aria-describedby="ayuda-sintaxis"
           />
+          <small id="ayuda-sintaxis" class="muted">
+            Usa comillas para una frase exacta ("sistema de inventarios") y un guion para excluir
+            una palabra (-web). No distingue mayúsculas ni tildes.
+          </small>
         </label>
         <div class="filters">
-          <label class="field">
-            <span>Facultad</span>
-            <select formControlName="idFacultad">
-              <option [ngValue]="null">Todas las facultades</option>
-              @for (f of facultades(); track f.idFacultad) {
-                <option [ngValue]="f.idFacultad">{{ f.sigla }} — {{ f.nombre }}</option>
-              }
-            </select>
-          </label>
-          <label class="field">
-            <span>Carrera del autor</span>
-            <select formControlName="idCarrera" aria-describedby="ayuda-facultad">
-              <option [ngValue]="null">{{ textoTodas('Todas las carreras') }}</option>
-              @for (c of carreras(); track c.idCarrera) {
-                <option [ngValue]="c.idCarrera">{{ c.sigla }} — {{ c.nombre }}</option>
-              }
-            </select>
-          </label>
-          <label class="field">
-            <span>Materia</span>
-            <select formControlName="idMateria" aria-describedby="ayuda-facultad">
-              <option [ngValue]="null">{{ textoTodas('Todas las materias') }}</option>
-              @for (m of materias(); track m.idMateria) {
-                <option [ngValue]="m.idMateria">{{ m.sigla }} — {{ m.nombre }}</option>
-              }
-            </select>
-          </label>
-          <label class="field">
-            <span>Semestre</span>
-            <select formControlName="idSemestre" aria-describedby="ayuda-facultad">
-              <option [ngValue]="null">{{ textoTodas('Todos los semestres') }}</option>
-              @for (s of semestres(); track s.idSemestre) {
-                <option [ngValue]="s.idSemestre">{{ s.semestre }}-{{ s.anio }}</option>
-              }
-            </select>
-          </label>
-          <label class="field">
-            <span>Tipo de trabajo</span>
-            <select formControlName="idTipoTrabajo">
-              <option [ngValue]="null">Todos los tipos</option>
-              @for (t of tipos(); track t.idTipoTrabajo) {
-                <option [ngValue]="t.idTipoTrabajo">{{ t.nombre }}</option>
-              }
-            </select>
-          </label>
+          @if (!publico) {
+            <label class="field">
+              <span>Facultad</span>
+              <select formControlName="idFacultad">
+                <option [ngValue]="null">Todas las facultades</option>
+                @for (f of facultades(); track f.idFacultad) {
+                  <option [ngValue]="f.idFacultad">{{ f.sigla }} — {{ f.nombre }}</option>
+                }
+              </select>
+            </label>
+            <label class="field">
+              <span>Carrera del autor</span>
+              <select formControlName="idCarrera" aria-describedby="ayuda-facultad">
+                <option [ngValue]="null">{{ textoTodas('Todas las carreras') }}</option>
+                @for (c of carreras(); track c.idCarrera) {
+                  <option [ngValue]="c.idCarrera">{{ c.sigla }} — {{ c.nombre }}</option>
+                }
+              </select>
+            </label>
+            <label class="field">
+              <span>Materia</span>
+              <select formControlName="idMateria" aria-describedby="ayuda-facultad">
+                <option [ngValue]="null">{{ textoTodas('Todas las materias') }}</option>
+                @for (m of materias(); track m.idMateria) {
+                  <option [ngValue]="m.idMateria">{{ m.sigla }} — {{ m.nombre }}</option>
+                }
+              </select>
+            </label>
+            <label class="field">
+              <span>Semestre</span>
+              <select formControlName="idSemestre" aria-describedby="ayuda-facultad">
+                <option [ngValue]="null">{{ textoTodas('Todos los semestres') }}</option>
+                @for (s of semestres(); track s.idSemestre) {
+                  <option [ngValue]="s.idSemestre">{{ s.semestre }}-{{ s.anio }}</option>
+                }
+              </select>
+            </label>
+            <label class="field">
+              <span>Grupo</span>
+              <select formControlName="idGrupo" aria-describedby="ayuda-grupo">
+                <option [ngValue]="null">{{ textoGrupos() }}</option>
+                @for (g of grupos(); track g.idGrupo) {
+                  <option [ngValue]="g.idGrupo">Grupo {{ g.nombre }}</option>
+                }
+              </select>
+            </label>
+            <label class="field">
+              <span>Tipo de trabajo</span>
+              <select formControlName="idTipoTrabajo">
+                <option [ngValue]="null">Todos los tipos</option>
+                @for (t of tipos(); track t.idTipoTrabajo) {
+                  <option [ngValue]="t.idTipoTrabajo">{{ t.nombre }}</option>
+                }
+              </select>
+            </label>
+          }
           <label class="field">
             <span>Hashtag</span>
             <input
@@ -117,10 +145,16 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idTipoTrabajo'] a
             />
           </label>
         </div>
-        @if (actual().idFacultad === null) {
-          <p id="ayuda-facultad" class="muted texto-chico">
-            Elige una facultad para filtrar por carrera, materia o semestre.
-          </p>
+        @if (!publico) {
+          @if (actual().idFacultad === null) {
+            <p id="ayuda-facultad" class="muted texto-chico">
+              Elige una facultad para filtrar por carrera, materia o semestre.
+            </p>
+          } @else if (actual().idMateria === null || actual().idSemestre === null) {
+            <p id="ayuda-grupo" class="muted texto-chico">
+              Elige materia y semestre para filtrar por grupo.
+            </p>
+          }
         }
       </form>
 
@@ -166,11 +200,14 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idTipoTrabajo'] a
             }
           </div>
         } @else {
+          <p class="muted texto-chico orden-resultados">
+            {{ actual().q ? 'Ordenado por relevancia' : 'Más recientes primero' }}
+          </p>
           <ul class="tarjetas-trabajos" aria-label="Resultados" [attr.aria-busy]="cargando()">
             @for (t of p.contenido; track t.idTrabajo) {
               <li class="tarjeta-trabajo">
                 <h2 class="tarjeta-titulo">
-                  <a [routerLink]="['/repositorio', t.idTrabajo]">{{ t.titulo }}</a>
+                  <a [routerLink]="[fuente.base, t.idTrabajo]">{{ t.titulo }}</a>
                 </h2>
                 <p class="tarjeta-autores">{{ t.autores.join(', ') }}</p>
                 <p class="muted texto-chico">
@@ -214,7 +251,8 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idTipoTrabajo'] a
   `,
 })
 export class RepositorioComponent {
-  private readonly trabajos = inject(TrabajoService);
+  protected readonly fuente = inject(FUENTE_REPOSITORIO);
+  protected readonly publico = this.fuente.publico;
   private readonly catalogo = inject(CatalogoService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -222,6 +260,9 @@ export class RepositorioComponent {
   private readonly ultimaBusqueda = inject(UltimaBusquedaRepositorio);
   private busqueda?: Subscription;
   private dependientes?: Subscription;
+  private cargaGrupos?: Subscription;
+  /** Facultad/materia/semestre cuyos grupos ya se cargaron ('' = ninguno). */
+  private gruposCargados = '';
   /** Facultad cuyos catalogos dependientes ya se cargaron (undefined = ninguna todavia). */
   private facultadCargada: number | null | undefined = undefined;
 
@@ -235,6 +276,7 @@ export class RepositorioComponent {
     idCarrera: new FormControl<number | null>(null),
     idMateria: new FormControl<number | null>(null),
     idSemestre: new FormControl<number | null>(null),
+    idGrupo: new FormControl<number | null>(null),
     idTipoTrabajo: new FormControl<number | null>(null),
   });
 
@@ -242,6 +284,7 @@ export class RepositorioComponent {
   protected readonly carreras = signal<Carrera[]>([]);
   protected readonly materias = signal<Materia[]>([]);
   protected readonly semestres = signal<Semestre[]>([]);
+  protected readonly grupos = signal<Grupo[]>([]);
   protected readonly tipos = signal<TipoTrabajo[]>([]);
 
   /** Filtros de la URL actual (lo que se esta mostrando). */
@@ -255,13 +298,15 @@ export class RepositorioComponent {
   protected readonly errorCatalogos = signal<string | null>(null);
 
   constructor() {
-    this.catalogo.facultades
-      .listar()
-      .pipe(takeUntilDestroyed())
-      .subscribe({
-        next: (f) => this.facultades.set(f),
-        error: () => this.avisarCatalogos(),
-      });
+    if (!this.publico) {
+      this.catalogo.facultades
+        .listar()
+        .pipe(takeUntilDestroyed())
+        .subscribe({
+          next: (f) => this.facultades.set(f),
+          error: () => this.avisarCatalogos(),
+        });
+    }
 
     // URL -> formulario + busqueda (carga inicial, enlaces compartidos, atras/adelante).
     this.route.queryParamMap
@@ -280,9 +325,23 @@ export class RepositorioComponent {
       }
       this.navegar(0);
     });
-    merge(...DEPENDIENTES.map((k) => c[k].valueChanges))
+    // El grupo es de la materia y el semestre anteriores: se limpia.
+    merge(c.idMateria.valueChanges, c.idSemestre.valueChanges)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        c.idGrupo.setValue(null, { emitEvent: false });
+        this.navegar(0);
+      });
+    merge(c.idCarrera.valueChanges, c.idGrupo.valueChanges, c.idTipoTrabajo.valueChanges)
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.navegar(0));
+  }
+
+  protected textoGrupos(): string {
+    const f = this.actual();
+    return f.idMateria !== null && f.idSemestre !== null
+      ? 'Todos los grupos'
+      : 'Elige materia y semestre';
   }
 
   protected textoTodas(texto: string): string {
@@ -322,6 +381,7 @@ export class RepositorioComponent {
         idCarrera: null,
         idMateria: null,
         idSemestre: null,
+        idGrupo: null,
         idTipoTrabajo: null,
       },
       { emitEvent: false },
@@ -349,7 +409,10 @@ export class RepositorioComponent {
     this.actual.set(f);
     this.ultimaBusqueda.params.set(urlDeFiltros(f));
     this.sincronizarFormulario(f);
-    this.cargarDependientes(f.idFacultad);
+    if (!this.publico) {
+      this.cargarDependientes(f.idFacultad);
+      this.cargarGrupos(f);
+    }
     this.buscar(f);
   }
 
@@ -368,6 +431,11 @@ export class RepositorioComponent {
       }
     }
     this.habilitarDependientes(f.idFacultad !== null);
+    if (f.idMateria !== null && f.idSemestre !== null) {
+      c.idGrupo.enable({ emitEvent: false });
+    } else {
+      c.idGrupo.disable({ emitEvent: false });
+    }
   }
 
   private habilitarDependientes(habilitar: boolean): void {
@@ -385,8 +453,8 @@ export class RepositorioComponent {
     this.busqueda?.unsubscribe();
     this.cargando.set(true);
     this.error.set(null);
-    this.busqueda = this.trabajos
-      .buscarEnRepositorio(aFiltroApi(f))
+    this.busqueda = this.fuente
+      .buscar(aFiltroApi(f))
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (p) => {
@@ -436,6 +504,35 @@ export class RepositorioComponent {
     cargar(this.catalogo.semestres.listar(filtro), (s) =>
       this.semestres.set([...s].sort((a, b) => b.anio - a.anio || b.semestre - a.semestre)),
     );
+  }
+
+  /** Grupos de la materia y el semestre elegidos (incluidos los desactivados). */
+  private cargarGrupos(f: FiltrosRepositorio): void {
+    const clave =
+      f.idFacultad !== null && f.idMateria !== null && f.idSemestre !== null
+        ? `${f.idFacultad}/${f.idMateria}/${f.idSemestre}`
+        : '';
+    if (this.gruposCargados === clave) {
+      return;
+    }
+    this.gruposCargados = clave;
+    this.cargaGrupos?.unsubscribe();
+    this.grupos.set([]);
+    if (!clave) {
+      return;
+    }
+    this.cargaGrupos = this.catalogo.grupos
+      .listar({
+        idFacultad: f.idFacultad!,
+        idMateria: f.idMateria!,
+        idSemestre: f.idSemestre!,
+        incluirInactivos: true,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (g) => this.grupos.set([...g].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))),
+        error: () => this.avisarCatalogos(),
+      });
   }
 
   private avisarCatalogos(): void {

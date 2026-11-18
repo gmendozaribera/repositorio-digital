@@ -26,3 +26,15 @@ export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   return auth.autenticado() ? inject(Router).parseUrl(auth.rutaInicio()) : true;
 };
+
+/**
+ * Para el repositorio publico (`/explorar/**`): quien ya tiene sesion va al equivalente autenticado
+ * (`/explorar/7?q=x` -> `/repositorio/7?q=x`), que tiene filtros de catalogo y descargas.
+ */
+export const visitanteGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  if (!auth.autenticado()) {
+    return true;
+  }
+  return inject(Router).parseUrl(state.url.replace(/^\/explorar(?=[/?#]|$)/, '/repositorio'));
+};

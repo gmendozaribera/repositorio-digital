@@ -1,0 +1,33 @@
+import { inject, Injectable } from '@angular/core';
+import { map, Observable } from 'rxjs';
+import type { EstadoAccesoPublico, PaginaRepositorio, TrabajoPublico } from '../../api/work';
+import { PublicoService } from '../../api/work/services/publico.service';
+import { data, FiltroRepositorio, filtroRepositorioParaApi } from './trabajo.service';
+
+/**
+ * Fachada de los endpoints anonimos de work-service (`/api/v1/publico/**`): el repositorio que se
+ * puede consultar SIN iniciar sesion, solo con los trabajos de las facultades que habilitaron el
+ * acceso externo.
+ *
+ * Seguridad: estas peticiones salen sin token (el jwtInterceptor no agrega el Bearer a
+ * `/publico/**`). Asi un visitante y un usuario con sesion ven exactamente lo mismo aqui, y el
+ * token nunca viaja a un endpoint que no lo necesita. Descargar archivos sigue exigiendo sesion.
+ */
+@Injectable({ providedIn: 'root' })
+export class RepositorioPublicoService {
+  private readonly api = inject(PublicoService);
+
+  /** `habilitado = true` si al menos una facultad permite el acceso anonimo. */
+  estado(): Observable<EstadoAccesoPublico> {
+    return this.api.obtenerEstadoAccesoPublico().pipe(map(data));
+  }
+
+  buscar(filtro?: FiltroRepositorio): Observable<PaginaRepositorio> {
+    return this.api.buscarRepositorioPublico(filtroRepositorioParaApi(filtro)).pipe(map(data));
+  }
+
+  /** 404 si no existe, no esta EVALUADO o su facultad no tiene acceso externo. */
+  obtener(id: number): Observable<TrabajoPublico> {
+    return this.api.obtenerTrabajoPublicoAnonimo({ id }).pipe(map(data));
+  }
+}

@@ -18,6 +18,11 @@ export interface BuscarRepositorio$Params {
   hashtag?: string;
 
   /**
+   * Grupo del trabajo.
+   */
+  idGrupo?: number;
+
+  /**
    * Facultad de la materia.
    */
   idFacultad?: number;
@@ -63,6 +68,7 @@ export function buscarRepositorio(
   if (params) {
     rb.query('q', params.q, {});
     rb.query('hashtag', params.hashtag, {});
+    rb.query('idGrupo', params.idGrupo, {});
     rb.query('idFacultad', params.idFacultad, {});
     rb.query('idCarrera', params.idCarrera, {});
     rb.query('idMateria', params.idMateria, {});

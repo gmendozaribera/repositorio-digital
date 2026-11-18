@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import type { Documento, TrabajoPublico } from '../../api/work';
 import { mensajeDeError } from '../../core/http/error-message';
 import { TrabajoService } from '../../core/services/trabajo.service';
+import { FUENTE_REPOSITORIO } from './fuente-repositorio';
 import { esEnlaceSeguro, guardarBlob, tamanoLegible, textoCategoria } from '../../shared/archivos';
 import { fechaAbsoluta } from '../../shared/fecha-relativa';
 import { UltimaBusquedaRepositorio } from './filtros-repositorio';
@@ -19,6 +20,9 @@ interface GrupoFase {
  * Ficha publica de un trabajo evaluado (`/repositorio/:id`). Solo lectura: sin estado editable,
  * calificacion, observaciones ni historial (el backend ni siquiera los envia). Los archivos se
  * descargan con el token (blob); los enlaces externos solo se abren si son https.
+ *
+ * En modo publico (`/explorar/:id`, sin sesion) los documentos se listan, pero descargar exige
+ * iniciar sesion: el boton lleva al login y, al entrar, vuelve a esta misma ficha en `/repositorio`.
  */
 @Component({
   selector: 'app-ficha-publica',
@@ -26,7 +30,7 @@ interface GrupoFase {
   template: `
     <section class="card detalle-trabajo">
       <p class="volver">
-        <a routerLink="/repositorio" [queryParams]="volverParams()">← Volver al repositorio</a>
+        <a [routerLink]="fuente.base" [queryParams]="volverParams()">← Volver al repositorio</a>
       </p>
 
       @if (error()) {
@@ -73,7 +77,7 @@ interface GrupoFase {
               <li>
                 <a
                   class="chip chip-enlace"
-                  routerLink="/repositorio"
+                  [routerLink]="fuente.base"
                   [queryParams]="{ hashtag: h }"
                   [attr.aria-label]="'Buscar trabajos con el hashtag ' + h"
                   >#{{ h }}</a
@@ -120,6 +124,13 @@ interface GrupoFase {
                       } @else {
                         <span class="muted texto-chico">Enlace no disponible</span>
                       }
+                    } @else if (fuente.publico) {
+                      <a
+                        class="btn btn-outline btn-sm"
+                        routerLink="/login"
+                        [queryParams]="{ returnUrl: '/repositorio/' + t.idTrabajo }"
+                        >Inicia sesión para descargar <span class="sr-only">{{ d.titulo }}</span></a
+                      >
                     } @else {
                       <button
                         class="btn btn-outline btn-sm"
@@ -145,6 +156,7 @@ interface GrupoFase {
 })
 export class FichaPublicaComponent implements OnInit {
   private readonly trabajos = inject(TrabajoService);
+  protected readonly fuente = inject(FUENTE_REPOSITORIO);
   private readonly destroyRef = inject(DestroyRef);
   private readonly ultimaBusqueda = inject(UltimaBusquedaRepositorio);
 
@@ -189,8 +201,8 @@ export class FichaPublicaComponent implements OnInit {
       return;
     }
     this.cargando.set(true);
-    this.trabajos
-      .obtenerPublico(id)
+    this.fuente
+      .obtener(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (t) => {

@@ -20,6 +20,9 @@ interface OpcionGrupo {
  * Por defecto (sin estado) el backend devuelve lo que falta revisar (PENDIENTE y EN_REVISION),
  * los mas antiguos primero. Nunca incluye BORRADOR.
  *
+ * "Por calificar" es un atajo al filtro estado = APROBADO: los trabajos que el Administrador de
+ * Curso del grupo debe calificar y publicar (el boton aparece en el detalle segun `acciones`).
+ *
  * El contrato no tiene un endpoint de "mis grupos": las opciones del filtro de grupo se arman con
  * los grupos que van apareciendo en los resultados.
  */
@@ -39,6 +42,25 @@ interface OpcionGrupo {
         }}
         Por defecto se muestran los pendientes y en revisión, los más antiguos primero.
       </p>
+
+      <div class="filtros-activos" role="group" aria-label="Accesos rápidos">
+        <button
+          class="chip chip-enlace"
+          type="button"
+          [attr.aria-pressed]="!estadoElegido()"
+          (click)="elegirEstado(null)"
+        >
+          Por revisar
+        </button>
+        <button
+          class="chip chip-enlace"
+          type="button"
+          [attr.aria-pressed]="porCalificar()"
+          (click)="elegirEstado('APROBADO')"
+        >
+          Por calificar
+        </button>
+      </div>
 
       <div class="filters" [formGroup]="filtros">
         <label class="field">
@@ -70,13 +92,19 @@ interface OpcionGrupo {
       } @else if (pagina(); as p) {
         @if (p.contenido.length === 0) {
           <p class="estado-vacio">
-            {{
-              sinFiltros() ? 'Sin trabajos pendientes.' : 'No hay trabajos para el filtro elegido.'
-            }}
+            @if (porCalificar() && filtros.controls.idGrupo.value === null) {
+              No hay trabajos aprobados pendientes de calificación.
+            } @else {
+              {{
+                sinFiltros()
+                  ? 'Sin trabajos pendientes.'
+                  : 'No hay trabajos para el filtro elegido.'
+              }}
+            }
           </p>
         } @else {
           <app-tabla-trabajos
-            titulo="Trabajos por revisar"
+            [titulo]="porCalificar() ? 'Trabajos por calificar' : 'Trabajos por revisar'"
             [trabajos]="p.contenido"
             [mostrarAutores]="true"
             [ocupada]="cargando()"
@@ -100,8 +128,10 @@ export class BandejaRevisionComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private carga?: Subscription;
 
-  /** La bandeja nunca incluye borradores. */
-  protected readonly estados = ESTADOS_TRABAJO.filter((e) => e.valor !== 'BORRADOR');
+  /** La bandeja nunca incluye borradores. APROBADO es lo que falta calificar. */
+  protected readonly estados = ESTADOS_TRABAJO.filter((e) => e.valor !== 'BORRADOR').map((e) =>
+    e.valor === 'APROBADO' ? { ...e, texto: 'Aprobado (por calificar)' } : e,
+  );
   protected readonly esAdmin = computed(() => this.auth.usuario()?.rol === 'ADMIN');
 
   protected readonly filtros = inject(NonNullableFormBuilder).group({
@@ -116,6 +146,8 @@ export class BandejaRevisionComponent implements OnInit {
   private readonly tamano = signal(20);
   private readonly conFiltros = signal(false);
   protected readonly sinFiltros = computed(() => !this.conFiltros());
+  protected readonly estadoElegido = signal<EstadoTrabajo | null>(null);
+  protected readonly porCalificar = computed(() => this.estadoElegido() === 'APROBADO');
 
   /** Grupos vistos en los resultados (se acumulan para que el filtro no pierda opciones). */
   private readonly gruposVistos = signal<Map<number, string>>(new Map());
@@ -136,6 +168,11 @@ export class BandejaRevisionComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargar();
+  }
+
+  /** Accesos rapidos: cambia el filtro de estado (el cambio dispara la recarga). */
+  protected elegirEstado(estado: EstadoTrabajo | null): void {
+    this.filtros.controls.estado.setValue(estado);
   }
 
   protected irAPagina(pagina: number): void {
@@ -166,6 +203,7 @@ export class BandejaRevisionComponent implements OnInit {
     this.cargando.set(true);
     this.error.set(null);
     const { estado, idGrupo } = this.filtros.getRawValue();
+    this.estadoElegido.set(estado);
     this.conFiltros.set(estado !== null || idGrupo !== null);
     this.carga = this.trabajos
       .bandeja({

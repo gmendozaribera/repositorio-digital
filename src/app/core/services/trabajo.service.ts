@@ -35,12 +35,14 @@ export interface FiltroRevision extends FiltroTrabajos {
 }
 
 /**
- * Busqueda en el repositorio (solo trabajos EVALUADO). Todos los filtros se combinan (Y);
- * `q` busca en titulo, resumen y hashtags; `hashtag` es exacto y sin '#'.
+ * Busqueda en el repositorio (solo trabajos EVALUADO). Todos los filtros se combinan (Y).
+ * `q` es full-text sobre titulo, resumen y hashtags (frases entre comillas, `-palabra` excluye;
+ * con `q` el orden es por relevancia); `hashtag` es exacto y sin '#'.
  */
 export interface FiltroRepositorio {
   q?: string;
   hashtag?: string;
+  idGrupo?: number;
   idFacultad?: number;
   idCarrera?: number;
   idMateria?: number;
@@ -73,7 +75,22 @@ function sinVacios<F extends object>(filtro: F | undefined): F {
   ) as F;
 }
 
-const data = <T>(r: { data: T }) => r.data;
+export const data = <T>(r: { data: T }) => r.data;
+
+/**
+ * Filtros del repositorio listos para el backend: sin vacios (`?q=` filtraria por "nada"), texto
+ * recortado y hashtag sin '#'. Lo comparten el repositorio autenticado y el publico.
+ */
+export function filtroRepositorioParaApi(filtro?: FiltroRepositorio): FiltroRepositorio {
+  const f = sinVacios(filtro);
+  if (typeof f.q === 'string') {
+    f.q = f.q.trim() || undefined;
+  }
+  if (typeof f.hashtag === 'string') {
+    f.hashtag = f.hashtag.trim().replace(/^#+/, '') || undefined;
+  }
+  return sinVacios(f);
+}
 
 /**
  * Fachada sobre el cliente generado de work-service (src/app/api/work): desenvuelve
@@ -146,21 +163,22 @@ export class TrabajoService {
       .pipe(map(data));
   }
 
+  /**
+   * Califica y publica (Administrador de Curso del grupo; solo desde APROBADO). El trabajo pasa a
+   * EVALUADO y queda visible en el repositorio. 400 si la nota esta fuera de 0..escalaCalifMax.
+   */
+  calificar(id: number, calificacion: number): Observable<Trabajo> {
+    return this.revisionApi.calificarTrabajo({ id, body: { calificacion } }).pipe(map(data));
+  }
+
   // ------------------------------------------------------------------ Repositorio (CU11)
 
   /**
-   * Trabajos evaluados (publicados), mas recientes primero. Cualquier rol autenticado.
-   * No manda filtros vacios: `?q=` o `?idFacultad=` filtrarian por "nada".
+   * Trabajos evaluados (publicados). Con `q`, por relevancia; sin `q`, mas recientes primero.
+   * Cualquier rol autenticado. No manda filtros vacios.
    */
   buscarEnRepositorio(filtro?: FiltroRepositorio): Observable<PaginaRepositorio> {
-    const f = sinVacios(filtro);
-    if (typeof f.q === 'string') {
-      f.q = f.q.trim() || undefined;
-    }
-    if (typeof f.hashtag === 'string') {
-      f.hashtag = f.hashtag.trim().replace(/^#+/, '') || undefined;
-    }
-    return this.repositorioApi.buscarRepositorio(sinVacios(f)).pipe(map(data));
+    return this.repositorioApi.buscarRepositorio(filtroRepositorioParaApi(filtro)).pipe(map(data));
   }
 
   /** Ficha publica: sin calificacion, observaciones ni historial. 404 si no esta EVALUADO. */

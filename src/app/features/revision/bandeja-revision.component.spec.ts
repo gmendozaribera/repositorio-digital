@@ -62,9 +62,9 @@ describe('BandejaRevisionComponent', () => {
       'Sin trabajos pendientes.',
     );
 
-    await elegir('estado', 3); // Aprobado (la lista no incluye Borrador)
+    await elegir('estado', 5); // Rechazado (la lista no incluye Borrador)
     const conEstado = bandeja([]);
-    expect(conEstado.params.get('estado')).toBe('APROBADO');
+    expect(conEstado.params.get('estado')).toBe('RECHAZADO');
     await render();
     expect(vista.querySelector('.estado-vacio')?.textContent).toContain('filtro elegido');
   });
@@ -102,5 +102,53 @@ describe('BandejaRevisionComponent', () => {
     const navegar = vi.spyOn(TestBed.inject(Router), 'navigate');
     (vista.querySelector('tbody tr') as HTMLElement).click();
     expect(navegar).toHaveBeenCalledWith(['/trabajos', 8]);
+  });
+
+  it('"Por calificar" filtra los APROBADO y "Por revisar" vuelve a la bandeja por defecto', async () => {
+    bandeja([]);
+    await render();
+    const acceso = (texto: string) =>
+      Array.from(vista.querySelectorAll<HTMLButtonElement>('.filtros-activos button')).find(
+        (b) => b.textContent?.trim() === texto,
+      )!;
+    expect(acceso('Por revisar').getAttribute('aria-pressed')).toBe('true');
+    // El filtro de estado ofrece APROBADO como lo que falta calificar.
+    expect(
+      Array.from(vista.querySelectorAll('select[formcontrolname=estado] option')).map((o) =>
+        o.textContent!.trim(),
+      ),
+    ).toContain('Aprobado (por calificar)');
+
+    acceso('Por calificar').click();
+    await render();
+    const req = bandeja([resumenDePrueba({ estado: 'APROBADO' })]);
+    expect(req.params.get('estado')).toBe('APROBADO');
+    await render();
+    expect(acceso('Por calificar').getAttribute('aria-pressed')).toBe('true');
+    expect(acceso('Por revisar').getAttribute('aria-pressed')).toBe('false');
+    expect(
+      vista.querySelector<HTMLSelectElement>('select[formcontrolname=estado]')!.value,
+    ).toContain('APROBADO');
+    expect(vista.textContent).toContain('Trabajos por calificar');
+
+    acceso('Por revisar').click();
+    await render();
+    expect(bandeja([]).params.has('estado')).toBe(false);
+    await render();
+    expect(vista.querySelector('.estado-vacio')?.textContent?.trim()).toBe(
+      'Sin trabajos pendientes.',
+    );
+  });
+
+  it('"Por calificar" sin resultados lo dice explícitamente', async () => {
+    bandeja([]);
+    await render();
+    vista.querySelectorAll<HTMLButtonElement>('.filtros-activos button')[1].click();
+    await render();
+    bandeja([]);
+    await render();
+    expect(vista.querySelector('.estado-vacio')?.textContent?.trim()).toBe(
+      'No hay trabajos aprobados pendientes de calificación.',
+    );
   });
 });

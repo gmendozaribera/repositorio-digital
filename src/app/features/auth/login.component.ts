@@ -1,9 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { mensajeDeError } from '../../core/http/error-message';
 import { crearEsperaPorIntentos } from '../../core/http/limite-intentos';
+import { RepositorioPublicoService } from '../../core/services/repositorio-publico.service';
 
 @Component({
   selector: 'app-login',
@@ -64,6 +66,11 @@ import { crearEsperaPorIntentos } from '../../core/http/limite-intentos';
           ¿Eres estudiante y no tienes cuenta?
           <a routerLink="/registro">Regístrate</a>
         </p>
+        @if (explorarHabilitado()) {
+          <p class="hint">
+            <a routerLink="/explorar">Explorar el repositorio sin iniciar sesión</a>
+          </p>
+        }
       </section>
     </main>
   `,
@@ -78,6 +85,19 @@ export class LoginComponent {
   protected readonly sesionExpirada = this.route.snapshot.queryParamMap.has('expirada');
   /** 429 por demasiados intentos fallidos desde esta IP: bloquea el boton hasta Retry-After. */
   protected readonly espera = crearEsperaPorIntentos();
+  /** El enlace al repositorio publico solo aparece si alguna facultad habilito el acceso externo. */
+  protected readonly explorarHabilitado = signal(false);
+
+  constructor() {
+    inject(RepositorioPublicoService)
+      .estado()
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (e) => this.explorarHabilitado.set(e.habilitado),
+        // Si no se pudo consultar, simplemente no se ofrece el enlace.
+        error: () => this.explorarHabilitado.set(false),
+      });
+  }
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     // /registro redirige aqui con ?usuario=<registro> para que el estudiante solo escriba su contraseña.

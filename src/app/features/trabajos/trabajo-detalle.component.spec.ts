@@ -7,6 +7,7 @@ import type { Rol } from '../../api/auth';
 import { provideApi } from '../../core/api/api.providers';
 import { PaginaVacia, respuesta, tokensDePrueba } from '../../core/auth/testing';
 import {
+  ACCIONES_ADMIN_CURSO_APROBADO,
   ACCIONES_DOCENTE_PENDIENTE,
   archivoDePrueba,
   DOCUMENTO_PDF,
@@ -210,6 +211,140 @@ describe('TrabajoDetalleComponent', () => {
     await render();
     expect(vista.querySelector('.observaciones-rechazo')?.textContent).toContain(
       'Motivo del rechazo',
+    );
+  });
+
+  // ------------------------------------------------------------------ Calificar (Sprint 4)
+
+  function campoNota(): HTMLInputElement {
+    return vista.querySelector<HTMLInputElement>('input[formcontrolname=calificacion]')!;
+  }
+
+  async function escribirNota(valor: string): Promise<void> {
+    campoNota().value = valor;
+    campoNota().dispatchEvent(new Event('input'));
+    await render();
+  }
+
+  function enviarNota(): void {
+    boton('Calificar y publicar', vista.querySelector('[role=dialog]')!).click();
+  }
+
+  it('el botón "Calificar y publicar" solo aparece si acciones.calificar', async () => {
+    await abrir(
+      trabajoDePrueba({ estado: 'APROBADO', acciones: ACCIONES_DOCENTE_PENDIENTE }),
+      'DOCENTE',
+    );
+    expect(botones().some((b) => b.startsWith('Calificar'))).toBe(false);
+    fixture.destroy();
+
+    await abrir(
+      trabajoDePrueba({ estado: 'APROBADO', acciones: ACCIONES_ADMIN_CURSO_APROBADO }),
+      'DOCENTE',
+    );
+    expect(botones()).toContain('Calificar y publicar…');
+    // Sin calificacion todavia: no se muestra el dato.
+    expect(vista.querySelector('.ficha')?.textContent).not.toContain('Calificación');
+  });
+
+  it('calificar valida el rango 0..escalaCalifMax y enteros antes de enviar', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await abrir(
+      trabajoDePrueba({
+        estado: 'APROBADO',
+        escalaCalifMax: 70,
+        acciones: ACCIONES_ADMIN_CURSO_APROBADO,
+      }),
+      'DOCENTE',
+    );
+    boton('Calificar y publicar…').click();
+    await render();
+    const dialogo = vista.querySelector('[role=dialog]')!;
+    expect(dialogo.textContent).toContain('pasará a Evaluado');
+    expect(dialogo.textContent).toContain('visible en el repositorio');
+    expect(dialogo.textContent).toContain('de 0 a 70');
+    expect(campoNota().getAttribute('max')).toBe('70');
+
+    // Vacio, fuera de rango (por arriba y por abajo) y con decimales: no se envia.
+    for (const valor of ['', '71', '-1', '50.5']) {
+      await escribirNota(valor);
+      enviarNota();
+      await render();
+      http.expectNone(`${API}/trabajos/7/calificar`);
+      expect(vista.querySelector('[role=dialog] .field-error')?.textContent).toContain(
+        'entre 0 y 70',
+      );
+    }
+    expect(confirmar).not.toHaveBeenCalled();
+
+    // El extremo superior es valido.
+    await escribirNota('70');
+    enviarNota();
+    expect(confirmar).toHaveBeenCalledWith(expect.stringContaining('70 / 70'));
+    http.expectOne(`${API}/trabajos/7/calificar`).flush(respuesta(trabajoDePrueba()));
+    flushTrabajo(
+      trabajoDePrueba({
+        estado: 'EVALUADO',
+        calificacion: 70,
+        escalaCalifMax: 70,
+        acciones: SIN_ACCIONES,
+      }),
+    );
+    await render();
+  });
+
+  it('calificar pide confirmación, envía la nota, recarga y muestra la calificación', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await abrir(
+      trabajoDePrueba({ estado: 'APROBADO', acciones: ACCIONES_ADMIN_CURSO_APROBADO }),
+      'DOCENTE',
+    );
+    boton('Calificar y publicar…').click();
+    await render();
+    await escribirNota('85');
+
+    // Si cancela la confirmacion no se envia nada.
+    enviarNota();
+    expect(confirmar).toHaveBeenCalledWith(expect.stringContaining('85 / 100'));
+    http.expectNone(`${API}/trabajos/7/calificar`);
+
+    confirmar.mockReturnValue(true);
+    enviarNota();
+    const patch = http.expectOne(`${API}/trabajos/7/calificar`);
+    expect(patch.request.method).toBe('PATCH');
+    expect(patch.request.body).toEqual({ calificacion: 85 });
+    patch.flush(respuesta(trabajoDePrueba({ estado: 'EVALUADO', calificacion: 85 })));
+    flushTrabajo(trabajoDePrueba({ estado: 'EVALUADO', calificacion: 85, acciones: SIN_ACCIONES }));
+    await render();
+
+    expect(vista.querySelector('.alert-success')?.textContent).toContain('calificado y publicado');
+    expect(vista.querySelector('[role=dialog]')).toBeNull();
+    expect(vista.querySelector('.estado-trabajo')?.textContent).toBe('Evaluado');
+    expect(vista.querySelector('.calificacion')?.textContent?.trim()).toBe('85 / 100');
+  });
+
+  it('un 400 del servidor al calificar se muestra en el campo', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await abrir(
+      trabajoDePrueba({ estado: 'APROBADO', acciones: ACCIONES_ADMIN_CURSO_APROBADO }),
+      'DOCENTE',
+    );
+    boton('Calificar y publicar…').click();
+    await render();
+    await escribirNota('90');
+    enviarNota();
+    http.expectOne(`${API}/trabajos/7/calificar`).flush(
+      {
+        status: 400,
+        title: 'Datos inválidos',
+        detail: 'Datos inválidos',
+        errores: { calificacion: 'La calificación debe estar entre 0 y 80.' },
+      },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    await render();
+    expect(vista.querySelector('[role=dialog] .field-error')?.textContent).toContain(
+      'entre 0 y 80',
     );
   });
 

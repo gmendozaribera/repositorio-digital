@@ -21,8 +21,23 @@ const ENDPOINTS_PUBLICOS = ['/login', '/refresh', '/2fa/verify', '/register'].ma
   (p) => `${AUTH_URL}${p}`,
 );
 
+/**
+ * Repositorio anonimo de work-service (`/api/v1/publico/**`): nunca lleva token. Asi el token no
+ * viaja a donde no hace falta y un 401 alli no intenta renovar una sesion que no se uso.
+ * (`/publico` exacto o seguido de `/` o `?`; no captura, p. ej., `/publicos`.)
+ */
+const PREFIJO_PUBLICO = `${environment.apiUrl}/publico`;
+
+function esRepositorioPublico(url: string): boolean {
+  if (!url.startsWith(PREFIJO_PUBLICO)) {
+    return false;
+  }
+  const resto = url.slice(PREFIJO_PUBLICO.length);
+  return resto === '' || resto.startsWith('/') || resto.startsWith('?');
+}
+
 function esPublico(url: string): boolean {
-  return ENDPOINTS_PUBLICOS.some((p) => url.startsWith(p));
+  return ENDPOINTS_PUBLICOS.some((p) => url.startsWith(p)) || esRepositorioPublico(url);
 }
 
 function conToken(req: HttpRequest<unknown>, token: string): HttpRequest<unknown> {

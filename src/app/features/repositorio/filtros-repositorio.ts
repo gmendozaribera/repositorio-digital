@@ -20,11 +20,20 @@ export interface FiltrosRepositorio {
   idMateria: number | null;
   idSemestre: number | null;
   idTipoTrabajo: number | null;
+  /** Depende de materia + semestre: sin ambos se descarta. */
+  idGrupo: number | null;
   pagina: number;
   tamano: number;
 }
 
-const IDS = ['idFacultad', 'idCarrera', 'idMateria', 'idSemestre', 'idTipoTrabajo'] as const;
+const IDS = [
+  'idFacultad',
+  'idCarrera',
+  'idMateria',
+  'idSemestre',
+  'idGrupo',
+  'idTipoTrabajo',
+] as const;
 
 /** Entero positivo o null (cualquier otra cosa en la URL se ignora). */
 function entero(valor: string | null): number | null {
@@ -42,14 +51,17 @@ export function normalizarHashtag(valor: string | null | undefined): string {
 export function filtrosDeUrl(p: ParamMap): FiltrosRepositorio {
   const tamano = entero(p.get('tamano'));
   const pagina = entero(p.get('pagina'));
+  const idMateria = entero(p.get('idMateria'));
+  const idSemestre = entero(p.get('idSemestre'));
   return {
     q: (p.get('q') ?? '').trim().slice(0, MAX_Q),
     hashtag: normalizarHashtag(p.get('hashtag')),
     idFacultad: entero(p.get('idFacultad')),
     idCarrera: entero(p.get('idCarrera')),
-    idMateria: entero(p.get('idMateria')),
-    idSemestre: entero(p.get('idSemestre')),
+    idMateria,
+    idSemestre,
     idTipoTrabajo: entero(p.get('idTipoTrabajo')),
+    idGrupo: idMateria !== null && idSemestre !== null ? entero(p.get('idGrupo')) : null,
     pagina: pagina ? pagina - 1 : 0,
     tamano: tamano && tamano <= 100 ? tamano : TAMANO_REPOSITORIO,
   };
@@ -86,6 +98,7 @@ export function aFiltroApi(f: FiltrosRepositorio): FiltroRepositorio {
     idMateria: f.idMateria ?? undefined,
     idSemestre: f.idSemestre ?? undefined,
     idTipoTrabajo: f.idTipoTrabajo ?? undefined,
+    idGrupo: f.idGrupo ?? undefined,
     pagina: f.pagina,
     tamano: f.tamano,
   };

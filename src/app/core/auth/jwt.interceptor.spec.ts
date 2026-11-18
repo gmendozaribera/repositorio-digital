@@ -82,6 +82,33 @@ describe('jwtInterceptor', () => {
     expect(http.expectOne(padron).request.headers.get('Authorization')).toBe('Bearer access-1');
   });
 
+  it('el repositorio anónimo (/publico/**) nunca lleva Bearer, aunque haya sesión', () => {
+    const estado = `${environment.apiUrl}/publico/estado`;
+    const buscar = `${environment.apiUrl}/publico/repositorio?q=redes`;
+    const ficha = `${environment.apiUrl}/publico/repositorio/7`;
+    const parecido = `${environment.apiUrl}/publicos-algo`;
+    for (const url of [estado, buscar, ficha, parecido]) {
+      client.get(url).subscribe();
+    }
+
+    expect(http.expectOne(estado).request.headers.has('Authorization')).toBe(false);
+    expect(http.expectOne(buscar).request.headers.has('Authorization')).toBe(false);
+    expect(http.expectOne(ficha).request.headers.has('Authorization')).toBe(false);
+    // Solo el prefijo exacto /publico es anonimo.
+    expect(http.expectOne(parecido).request.headers.get('Authorization')).toBe('Bearer access-1');
+  });
+
+  it('un 401 en /publico/** no intenta refrescar ni cierra la sesión', () => {
+    const ficha = `${environment.apiUrl}/publico/repositorio/7`;
+    let status: number | undefined;
+    client.get(ficha).subscribe({ error: (e) => (status = e.status) });
+    http.expectOne(ficha).flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(status).toBe(401);
+    http.expectNone(`${AUTH_URL}/refresh`);
+    expect(TestBed.inject(AuthService).autenticado()).toBe(true);
+  });
+
   it('un 401 del auto-registro no intenta refrescar la sesion', () => {
     let status: number | undefined;
     client.post(`${AUTH_URL}/register`, {}).subscribe({ error: (e) => (status = e.status) });

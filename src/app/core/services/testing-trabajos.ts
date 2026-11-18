@@ -17,6 +17,7 @@ export const SIN_ACCIONES: Acciones = {
   revisar: false,
   aprobar: false,
   rechazar: false,
+  calificar: false,
 };
 
 /** Lo que ve el autor de un BORRADOR. */
@@ -26,6 +27,9 @@ export const ACCIONES_AUTOR_BORRADOR: Acciones = {
   enviar: true,
   eliminar: true,
 };
+
+/** Lo que ve el Administrador de Curso del grupo con el trabajo APROBADO. */
+export const ACCIONES_ADMIN_CURSO_APROBADO: Acciones = { ...SIN_ACCIONES, calificar: true };
 
 /** Lo que ve un docente del grupo con el trabajo PENDIENTE. */
 export const ACCIONES_DOCENTE_PENDIENTE: Acciones = {
@@ -78,6 +82,8 @@ export function trabajoDePrueba(cambios: Partial<Trabajo> = {}): Trabajo {
     resumen: 'El trabajo presenta el análisis y diseño de un sistema de inventarios.',
     estado: 'BORRADOR',
     observaciones: null,
+    calificacion: null,
+    escalaCalifMax: 100,
     idGrupo: 3,
     grupo: 'SA',
     idMateria: 10,

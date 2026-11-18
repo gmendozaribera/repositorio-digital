@@ -9,7 +9,17 @@ import { EstadoTrabajo } from '../models/estado-trabajo';
 export interface Trabajo {
   acciones: Acciones;
   autores: Array<Autor>;
+
+  /**
+   * Solo en EVALUADO; visible para autores, docentes del grupo y ADMIN (nunca en el repositorio).
+   */
+  calificacion: number | null;
   documentos: Array<Documento>;
+
+  /**
+   * Escala maxima vigente de la facultad (para el formulario de calificacion).
+   */
+  escalaCalifMax: number;
   estado: EstadoTrabajo;
   fechaActualizacion: string;
   fechaCreacion: string;

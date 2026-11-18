@@ -1413,3 +1413,18 @@ h3 {
   border-color: var(--accent);
   background: var(--surface);
 }
+
+/* Repositorio publico (/explorar) sin acceso habilitado. */
+.acceso-restringido {
+  max-width: 36rem;
+  margin: 2rem auto;
+  text-align: center;
+}
+
+.calificacion {
+  font-weight: 600;
+}
+
+.orden-resultados {
+  margin: 0.5rem 0 0;
+}

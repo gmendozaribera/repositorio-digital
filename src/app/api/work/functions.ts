@@ -21,6 +21,8 @@ export type { AprobarTrabajo$Params as AprobarTrabajo$Params } from './fn/revisi
 export { aprobarTrabajo as aprobarTrabajo } from './fn/revision/aprobar-trabajo';
 export type { RechazarTrabajo$Params as RechazarTrabajo$Params } from './fn/revision/rechazar-trabajo';
 export { rechazarTrabajo as rechazarTrabajo } from './fn/revision/rechazar-trabajo';
+export type { CalificarTrabajo$Params as CalificarTrabajo$Params } from './fn/revision/calificar-trabajo';
+export { calificarTrabajo as calificarTrabajo } from './fn/revision/calificar-trabajo';
 export type { SubirDocumento$Params as SubirDocumento$Params } from './fn/documentos/subir-documento';
 export { subirDocumento as subirDocumento } from './fn/documentos/subir-documento';
 export type { AgregarEnlace$Params as AgregarEnlace$Params } from './fn/documentos/agregar-enlace';
@@ -35,3 +37,9 @@ export type { BuscarRepositorio$Params as BuscarRepositorio$Params } from './fn/
 export { buscarRepositorio as buscarRepositorio } from './fn/repositorio/buscar-repositorio';
 export type { ObtenerTrabajoRepositorio$Params as ObtenerTrabajoRepositorio$Params } from './fn/repositorio/obtener-trabajo-repositorio';
 export { obtenerTrabajoRepositorio as obtenerTrabajoRepositorio } from './fn/repositorio/obtener-trabajo-repositorio';
+export type { BuscarRepositorioPublico$Params as BuscarRepositorioPublico$Params } from './fn/publico/buscar-repositorio-publico';
+export { buscarRepositorioPublico as buscarRepositorioPublico } from './fn/publico/buscar-repositorio-publico';
+export type { ObtenerTrabajoPublicoAnonimo$Params as ObtenerTrabajoPublicoAnonimo$Params } from './fn/publico/obtener-trabajo-publico-anonimo';
+export { obtenerTrabajoPublicoAnonimo as obtenerTrabajoPublicoAnonimo } from './fn/publico/obtener-trabajo-publico-anonimo';
+export type { ObtenerEstadoAccesoPublico$Params as ObtenerEstadoAccesoPublico$Params } from './fn/publico/obtener-estado-acceso-publico';
+export { obtenerEstadoAccesoPublico as obtenerEstadoAccesoPublico } from './fn/publico/obtener-estado-acceso-publico';
