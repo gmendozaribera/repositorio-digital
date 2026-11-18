@@ -43,6 +43,41 @@ export function mensajeDeEspera(segundos: number): string {
   );
 }
 
+/**
+ * 429 del repositorio publico (work-api 1.3.0, `/publico/**`): un visitante hizo demasiadas
+ * consultas en un minuto. La espera es corta, asi que se cuenta en segundos.
+ */
+export function mensajeDeConsultasSeguidas(segundos: number): string {
+  const s = Math.max(1, Math.ceil(segundos));
+  return (
+    'Demasiadas consultas seguidas. Podrás buscar de nuevo en ' +
+    `${s} ${s === 1 ? 'segundo' : 'segundos'}.`
+  );
+}
+
+/** 429 del repositorio publico fuera del buscador (estado, ficha): sin cuenta regresiva. */
+export const MENSAJE_CONSULTAS_SEGUIDAS =
+  'Demasiadas consultas seguidas. Espera unos segundos e intenta de nuevo.';
+
+/** Textos de una espera por 429 (por defecto, los de login y registro). */
+export interface TextosEspera {
+  /** Mensaje mientras dura la espera; recibe los segundos restantes. */
+  espera: (segundos: number) => string;
+  /** Si el 429 no trae Retry-After (se prefiere el detail del servidor). */
+  sinCabecera: string;
+}
+
+const TEXTOS_INTENTOS: TextosEspera = {
+  espera: mensajeDeEspera,
+  sinCabecera: 'Demasiados intentos fallidos. Intenta de nuevo más tarde.',
+};
+
+/** Textos para el buscador del repositorio publico. */
+export const TEXTOS_CONSULTAS: TextosEspera = {
+  espera: mensajeDeConsultasSeguidas,
+  sinCabecera: 'Demasiadas consultas seguidas. Intenta de nuevo en unos segundos.',
+};
+
 /** "14:05" para la cuenta regresiva del boton. */
 export function formatoCuentaRegresiva(segundos: number): string {
   const s = Math.max(0, Math.ceil(segundos));
@@ -50,14 +85,15 @@ export function formatoCuentaRegresiva(segundos: number): string {
 }
 
 /**
- * Estado del bloqueo por intentos para un formulario publico (login, registro). Se crea en el
+ * Estado del bloqueo por intentos para un formulario publico (login, registro, buscador del
+ * repositorio publico con `TEXTOS_CONSULTAS`). Se crea en el
  * contexto de inyeccion del componente: el temporizador se limpia solo al destruirlo.
  *
  * - `manejar(error)`: si es un 429 arranca la espera y devuelve true.
  * - `bloqueado()`: el boton de enviar debe quedar deshabilitado.
  * - `mensaje()`: texto a mostrar (se actualiza con la cuenta regresiva).
  */
-export function crearEsperaPorIntentos() {
+export function crearEsperaPorIntentos(textos: TextosEspera = TEXTOS_INTENTOS) {
   const restante = signal(0);
   /** Mensaje cuando el 429 no trae Retry-After: se muestra el detail del servidor sin bloquear. */
   const sinCabecera = signal<string | null>(null);
@@ -84,7 +120,7 @@ export function crearEsperaPorIntentos() {
   return {
     restante: restante.asReadonly(),
     bloqueado: computed(() => restante() > 0),
-    mensaje: computed(() => (restante() > 0 ? mensajeDeEspera(restante()) : sinCabecera())),
+    mensaje: computed(() => (restante() > 0 ? textos.espera(restante()) : sinCabecera())),
     cuentaRegresiva: computed(() => formatoCuentaRegresiva(restante())),
 
     manejar(error: unknown): boolean {
@@ -95,9 +131,7 @@ export function crearEsperaPorIntentos() {
       const segundos = segundosDeEspera(error);
       if (segundos === null) {
         restante.set(0);
-        sinCabecera.set(
-          mensajeDeError(error, 'Demasiados intentos fallidos. Intenta de nuevo más tarde.'),
-        );
+        sinCabecera.set(mensajeDeError(error, textos.sinCabecera));
         return true;
       }
       sinCabecera.set(null);

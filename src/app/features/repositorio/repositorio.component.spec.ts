@@ -347,4 +347,68 @@ describe('RepositorioComponent', () => {
     expect(select('idGrupo').options[0].textContent?.trim()).toBe('Elige materia y semestre');
     expect(vista.querySelector('#ayuda-grupo')?.textContent).toContain('materia y semestre');
   });
+
+  describe('no duplica búsquedas', () => {
+    function q(): HTMLInputElement {
+      return vista.querySelector<HTMLInputElement>('input[formcontrolname=q]')!;
+    }
+
+    it('Enter busca al instante y el debounce posterior no repite la consulta', async () => {
+      await abrir('/repositorio');
+      q().value = 'inventarios';
+      q().dispatchEvent(new Event('input'));
+      vista.querySelector('form')!.dispatchEvent(new Event('submit'));
+      await render();
+      expect(busqueda().request.params.get('q')).toBe('inventarios');
+
+      await new Promise((r) => setTimeout(r, DEBOUNCE_BUSQUEDA_MS + 50));
+      await render();
+      http.expectNone((r) => r.url === `${API}/repositorio`);
+    });
+
+    it('una URL que normalizada no cambia los filtros no vuelve a consultar', async () => {
+      await abrir('/repositorio?idFacultad=1', 1);
+      // idGrupo sin materia y semestre se descarta: los filtros son los mismos.
+      await harness.navigateByUrl('/repositorio?idFacultad=1&idGrupo=3');
+      await render();
+      http.expectNone((r) => r.url === `${API}/repositorio`);
+    });
+
+    it('varios filtros cambiados en el mismo instante terminan en una sola consulta', async () => {
+      await abrir('/repositorio?idFacultad=1', 1);
+      // Materia y semestre a la vez (p. ej. autocompletado): dos navegaciones en el mismo tick.
+      const s1 = select('idMateria');
+      const s2 = select('idSemestre');
+      s1.selectedIndex = 1;
+      s2.selectedIndex = 1;
+      s1.dispatchEvent(new Event('change'));
+      s2.dispatchEvent(new Event('change'));
+      await render();
+
+      expect(url()).toBe('/repositorio?idFacultad=1&idMateria=10&idSemestre=5');
+      const req = busqueda();
+      expect(req.request.params.get('idMateria')).toBe('10');
+      expect(req.request.params.get('idSemestre')).toBe('5');
+      http.expectOne((r) => r.url === `${API}/grupos`).flush(respuesta([]));
+    });
+
+    it('tras un error, Enter con la misma búsqueda la reintenta', async () => {
+      harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl('/repositorio?q=redes');
+      vista = harness.routeNativeElement!;
+      http.expectOne(`${API}/facultades`).flush(respuesta(FACULTADES));
+      catalogos();
+      http
+        .expectOne((r) => r.url === `${API}/repositorio`)
+        .flush(null, { status: 503, statusText: 'Service Unavailable' });
+      await render();
+      expect(vista.querySelector('.alert-danger')).not.toBeNull();
+
+      vista.querySelector('form')!.dispatchEvent(new Event('submit'));
+      await render();
+      expect(busqueda().request.params.get('q')).toBe('redes');
+      await render();
+      expect(vista.querySelector('.alert-danger')).toBeNull();
+    });
+  });
 });

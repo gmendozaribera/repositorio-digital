@@ -98,6 +98,23 @@ describe('jwtInterceptor', () => {
     expect(http.expectOne(parecido).request.headers.get('Authorization')).toBe('Bearer access-1');
   });
 
+  it('sin sesión, los catálogos (lectura anónima, catalog-api 1.3.0) salen sin Bearer y un 401 no refresca', () => {
+    // Visitante de /explorar: no hay tokens guardados.
+    TestBed.inject(AuthService).cerrarSesionLocal();
+    const facultades = `${environment.apiUrl}/facultades`;
+    const materias = `${environment.apiUrl}/materias?idFacultad=1&incluirInactivos=true`;
+    let status: number | undefined;
+    client.get(facultades).subscribe();
+    client.get(materias).subscribe({ error: (e) => (status = e.status) });
+
+    expect(http.expectOne(facultades).request.headers.has('Authorization')).toBe(false);
+    const req = http.expectOne(materias);
+    expect(req.request.headers.has('Authorization')).toBe(false);
+    req.flush(null, { status: 401, statusText: 'Unauthorized' });
+    expect(status).toBe(401);
+    http.expectNone(`${AUTH_URL}/refresh`);
+  });
+
   it('un 401 en /publico/** no intenta refrescar ni cierra la sesión', () => {
     const ficha = `${environment.apiUrl}/publico/repositorio/7`;
     let status: number | undefined;

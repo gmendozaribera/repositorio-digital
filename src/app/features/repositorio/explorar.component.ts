@@ -1,6 +1,7 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterOutlet } from '@angular/router';
+import { esLimiteDeIntentos, MENSAJE_CONSULTAS_SEGUIDAS } from '../../core/http/limite-intentos';
 import { RepositorioPublicoService } from '../../core/services/repositorio-publico.service';
 
 type Acceso = 'cargando' | 'habilitado' | 'restringido' | 'error';
@@ -46,9 +47,7 @@ type Acceso = 'cargando' | 'habilitado' | 'restringido' | 'error';
         @case ('error') {
           <section class="card acceso-restringido">
             <h1>Repositorio no disponible</h1>
-            <p class="alert alert-danger" role="alert">
-              No se pudo consultar el repositorio en este momento. Intenta de nuevo más tarde.
-            </p>
+            <p class="alert alert-danger" role="alert">{{ mensajeError() }}</p>
             <div class="form-actions">
               <button class="btn btn-outline" type="button" (click)="consultar()">
                 Reintentar
@@ -64,6 +63,7 @@ type Acceso = 'cargando' | 'habilitado' | 'restringido' | 'error';
 export class ExplorarComponent {
   private readonly publico = inject(RepositorioPublicoService);
   protected readonly acceso = signal<Acceso>('cargando');
+  protected readonly mensajeError = signal('');
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
@@ -77,7 +77,14 @@ export class ExplorarComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (e) => this.acceso.set(e.habilitado ? 'habilitado' : 'restringido'),
-        error: () => this.acceso.set('error'),
+        error: (err: unknown) => {
+          this.mensajeError.set(
+            esLimiteDeIntentos(err)
+              ? MENSAJE_CONSULTAS_SEGUIDAS
+              : 'No se pudo consultar el repositorio en este momento. Intenta de nuevo más tarde.',
+          );
+          this.acceso.set('error');
+        },
       });
   }
 }

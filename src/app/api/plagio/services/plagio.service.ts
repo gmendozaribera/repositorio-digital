@@ -77,7 +77,9 @@ export class PlagioService extends BaseService {
    * Iniciar un analisis de plagio (docente del grupo).
    *
    * El trabajo debe estar en `PENDIENTE`, `EN_REVISION`, `APROBADO`, `APROBADO_CON_OBSERVACIONES` o `EVALUADO`
-   * (409 en `BORRADOR` o `RECHAZADO`) y tener al menos un archivo analizable (400). 409 si ya hay un analisis
+   * (409 en `BORRADOR` o `RECHAZADO`) y tener al menos un archivo analizable (400). Con el motor COPYLEAKS,
+   * si no hay repositorio privado configurado y la facultad no compara con internet, no hay contra que comparar:
+   * 400 con un mensaje que indica como habilitarlo (no se consume credito del proveedor). 409 si ya hay un analisis
    * en curso. Responde 202 con el analisis en estado `EN_PROCESO`.
    *
    * This method provides access to the full `HttpResponse`, allowing access to response headers.
@@ -97,7 +99,9 @@ export class PlagioService extends BaseService {
    * Iniciar un analisis de plagio (docente del grupo).
    *
    * El trabajo debe estar en `PENDIENTE`, `EN_REVISION`, `APROBADO`, `APROBADO_CON_OBSERVACIONES` o `EVALUADO`
-   * (409 en `BORRADOR` o `RECHAZADO`) y tener al menos un archivo analizable (400). 409 si ya hay un analisis
+   * (409 en `BORRADOR` o `RECHAZADO`) y tener al menos un archivo analizable (400). Con el motor COPYLEAKS,
+   * si no hay repositorio privado configurado y la facultad no compara con internet, no hay contra que comparar:
+   * 400 con un mensaje que indica como habilitarlo (no se consume credito del proveedor). 409 si ya hay un analisis
    * en curso. Responde 202 con el analisis en estado `EN_PROCESO`.
    *
    * This method provides access only to the response body.

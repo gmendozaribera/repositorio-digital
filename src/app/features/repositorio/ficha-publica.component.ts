@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import type { Documento, TrabajoPublico } from '../../api/work';
 import { mensajeDeError } from '../../core/http/error-message';
+import { esLimiteDeIntentos, MENSAJE_CONSULTAS_SEGUIDAS } from '../../core/http/limite-intentos';
 import { TrabajoService } from '../../core/services/trabajo.service';
 import { FUENTE_REPOSITORIO } from './fuente-repositorio';
 import { esEnlaceSeguro, guardarBlob, tamanoLegible, textoCategoria } from '../../shared/archivos';
@@ -214,7 +215,9 @@ export class FichaPublicaComponent implements OnInit {
           this.error.set(
             err instanceof HttpErrorResponse && (err.status === 404 || err.status === 400)
               ? 'El trabajo no existe o no está publicado.'
-              : mensajeDeError(err, 'No se pudo cargar el trabajo.'),
+              : esLimiteDeIntentos(err)
+                ? MENSAJE_CONSULTAS_SEGUIDAS
+                : mensajeDeError(err, 'No se pudo cargar el trabajo.'),
           );
         },
       });

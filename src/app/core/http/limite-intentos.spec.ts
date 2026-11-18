@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import {
   crearEsperaPorIntentos,
   formatoCuentaRegresiva,
+  mensajeDeConsultasSeguidas,
   mensajeDeEspera,
   segundosDeEspera,
 } from './limite-intentos';
@@ -28,6 +29,13 @@ describe('limite de intentos (429)', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-16T14:00:00Z'));
     expect(segundosDeEspera(error429('Mon, 16 Nov 2026 14:05:00 GMT'))).toBe(300);
+  });
+
+  it('repositorio público: cuenta en segundos con singular para 1', () => {
+    expect(mensajeDeConsultasSeguidas(30)).toBe(
+      'Demasiadas consultas seguidas. Podrás buscar de nuevo en 30 segundos.',
+    );
+    expect(mensajeDeConsultasSeguidas(0.4)).toContain('en 1 segundo.');
   });
 
   it('redondea los minutos hacia arriba y usa singular con 1 minuto', () => {

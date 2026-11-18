@@ -1323,6 +1323,14 @@ h3 {
 }
 
 /* Repositorio de trabajos (buscador y ficha publica) */
+/* fieldset solo para deshabilitar un bloque (espera por 429), sin aspecto propio */
+.sin-marco {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
 .buscador-texto {
   max-width: 640px;
 }

@@ -1,11 +1,12 @@
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import { debounceTime, merge, Observable, Subscription } from 'rxjs';
 import type { Carrera, Facultad, Grupo, Materia, Semestre, TipoTrabajo } from '../../api/catalog';
 import type { PaginaRepositorio } from '../../api/work';
 import { mensajeDeError } from '../../core/http/error-message';
+import { crearEsperaPorIntentos, TEXTOS_CONSULTAS } from '../../core/http/limite-intentos';
 import { CatalogoService } from '../../core/services/catalogo.service';
 import { PaginadorComponent } from '../../shared/paginador.component';
 import {
@@ -39,8 +40,15 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
  * de materia + semestre. Se listan tambien los registros desactivados del catalogo: un trabajo de
  * un semestre ya cerrado (o de una materia que dejo de dictarse) sigue publicado.
  *
- * Modo publico (`/explorar`, sin sesion; ver FuenteRepositorio): los catalogos exigen sesion, asi
- * que solo se ofrece la busqueda por texto y hashtag.
+ * Modo publico (`/explorar`, sin sesion; ver FuenteRepositorio): los mismos filtros, con los
+ * catalogos leidos sin token, pero la facultad se limita a las que habilitaron el acceso externo.
+ * Si solo hay una, queda preseleccionada (sin ensuciar la URL: no se escribe `idFacultad`).
+ * Si el backend responde 429 (demasiadas consultas por minuto) el buscador se deshabilita con una
+ * cuenta regresiva y, al terminar, se repite la busqueda pendiente.
+ *
+ * Una busqueda por cambio real: una URL que, normalizada, no cambia los filtros (p. ej. un idGrupo
+ * sin materia) no vuelve a consultar; varios cambios en el mismo instante terminan en una sola
+ * navegacion (el router descarta las anteriores) y por lo tanto en una sola consulta.
  */
 @Component({
   selector: 'app-repositorio',
@@ -52,9 +60,9 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
       </header>
       <p class="muted">
         @if (publico) {
-          Trabajos académicos evaluados y publicados. Busca por título, resumen o hashtag. Para
-          descargar los documentos o filtrar por facultad, materia o semestre,
-          <a routerLink="/login">inicia sesión</a>.
+          Trabajos académicos evaluados y publicados. Busca por título, resumen o hashtag y filtra
+          por facultad, carrera, materia, semestre, grupo o tipo de trabajo. Para descargar los
+          documentos, <a routerLink="/login">inicia sesión</a>.
         } @else {
           Trabajos académicos evaluados de la facultad. Busca por título, resumen o hashtag y filtra
           por facultad, carrera, materia, semestre, grupo o tipo de trabajo.
@@ -62,27 +70,30 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
       </p>
 
       <form class="buscador" [formGroup]="filtros" (ngSubmit)="buscarAhora()" role="search">
-        <label class="field buscador-texto">
-          <span>Buscar</span>
-          <input
-            type="search"
-            formControlName="q"
-            [attr.maxlength]="maxQ"
-            placeholder="Título, resumen o hashtag"
-            autocomplete="off"
-            aria-describedby="ayuda-sintaxis"
-          />
-          <small id="ayuda-sintaxis" class="muted">
-            Usa comillas para una frase exacta ("sistema de inventarios") y un guion para excluir
-            una palabra (-web). No distingue mayúsculas ni tildes.
-          </small>
-        </label>
-        <div class="filters">
-          @if (!publico) {
+        <!-- Durante la espera por 429 se deshabilita todo el buscador (fieldset nativo). -->
+        <fieldset class="sin-marco" [disabled]="espera.bloqueado()">
+          <label class="field buscador-texto">
+            <span>Buscar</span>
+            <input
+              type="search"
+              formControlName="q"
+              [attr.maxlength]="maxQ"
+              placeholder="Título, resumen o hashtag"
+              autocomplete="off"
+              aria-describedby="ayuda-sintaxis"
+            />
+            <small id="ayuda-sintaxis" class="muted">
+              Usa comillas para una frase exacta ("sistema de inventarios") y un guion para excluir
+              una palabra (-web). No distingue mayúsculas ni tildes.
+            </small>
+          </label>
+          <div class="filters">
             <label class="field">
               <span>Facultad</span>
               <select formControlName="idFacultad">
-                <option [ngValue]="null">Todas las facultades</option>
+                @if (facultadFija === null) {
+                  <option [ngValue]="null">Todas las facultades</option>
+                }
                 @for (f of facultades(); track f.idFacultad) {
                   <option [ngValue]="f.idFacultad">{{ f.sigla }} — {{ f.nombre }}</option>
                 }
@@ -133,19 +144,17 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
                 }
               </select>
             </label>
-          }
-          <label class="field">
-            <span>Hashtag</span>
-            <input
-              type="text"
-              formControlName="hashtag"
-              [attr.maxlength]="maxHashtag"
-              placeholder="#springboot"
-              autocomplete="off"
-            />
-          </label>
-        </div>
-        @if (!publico) {
+            <label class="field">
+              <span>Hashtag</span>
+              <input
+                type="text"
+                formControlName="hashtag"
+                [attr.maxlength]="maxHashtag"
+                placeholder="#springboot"
+                autocomplete="off"
+              />
+            </label>
+          </div>
           @if (actual().idFacultad === null) {
             <p id="ayuda-facultad" class="muted texto-chico">
               Elige una facultad para filtrar por carrera, materia o semestre.
@@ -155,7 +164,7 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
               Elige materia y semestre para filtrar por grupo.
             </p>
           }
-        }
+        </fieldset>
       </form>
 
       @if (conFiltros()) {
@@ -166,6 +175,7 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
               <button
                 class="chip-quitar"
                 type="button"
+                [disabled]="espera.bloqueado()"
                 [attr.aria-label]="'Quitar el filtro #' + h"
                 (click)="quitarHashtag()"
               >
@@ -173,12 +183,20 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
               </button>
             </span>
           }
-          <button class="btn btn-link btn-sm" type="button" (click)="limpiar()">
+          <button
+            class="btn btn-link btn-sm"
+            type="button"
+            [disabled]="espera.bloqueado()"
+            (click)="limpiar()"
+          >
             Limpiar filtros
           </button>
         </div>
       }
 
+      @if (espera.mensaje(); as aviso) {
+        <p class="alert alert-warn aviso-espera" role="status">{{ aviso }}</p>
+      }
       @if (errorCatalogos()) {
         <p class="alert alert-info" role="status">{{ errorCatalogos() }}</p>
       }
@@ -225,6 +243,7 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
                           class="chip chip-enlace"
                           type="button"
                           [attr.aria-pressed]="actual().hashtag === h"
+                          [disabled]="espera.bloqueado()"
                           [attr.aria-label]="'Filtrar por el hashtag ' + h"
                           (click)="aplicarHashtag(h)"
                         >
@@ -238,14 +257,16 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
             }
           </ul>
         }
-        <app-paginador
-          [pagina]="p.pagina"
-          [tamano]="p.tamano"
-          [totalElementos]="p.totalElementos"
-          [totalPaginas]="p.totalPaginas"
-          (cambiarPagina)="irAPagina($event)"
-          (cambiarTamano)="cambiarTamano($event)"
-        />
+        <fieldset class="sin-marco" [disabled]="espera.bloqueado()">
+          <app-paginador
+            [pagina]="p.pagina"
+            [tamano]="p.tamano"
+            [totalElementos]="p.totalElementos"
+            [totalPaginas]="p.totalPaginas"
+            (cambiarPagina)="irAPagina($event)"
+            (cambiarTamano)="cambiarTamano($event)"
+          />
+        </fieldset>
       }
     </section>
   `,
@@ -258,6 +279,16 @@ export class RepositorioComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly ultimaBusqueda = inject(UltimaBusquedaRepositorio);
+  /** Facultades que se pueden elegir (null = todas); en modo publico, las de acceso externo. */
+  private readonly permitidas = this.fuente.facultadesPermitidas();
+  /** Unica facultad permitida: queda preseleccionada y no se ofrece "Todas las facultades". */
+  protected readonly facultadFija = this.permitidas?.length === 1 ? this.permitidas[0] : null;
+  /** 429 del repositorio publico: deshabilita el buscador con cuenta regresiva. */
+  protected readonly espera = crearEsperaPorIntentos(TEXTOS_CONSULTAS);
+  /** Hay una busqueda que se hara al terminar la espera por 429. */
+  private readonly pendiente = signal(false);
+  /** Filtros de la busqueda en curso o ya respondida (null si la ultima fallo). */
+  private buscada: FiltrosRepositorio | null = null;
   private busqueda?: Subscription;
   private dependientes?: Subscription;
   private cargaGrupos?: Subscription;
@@ -289,24 +320,34 @@ export class RepositorioComponent {
 
   /** Filtros de la URL actual (lo que se esta mostrando). */
   protected readonly actual = signal<FiltrosRepositorio>(
-    filtrosDeUrl(this.route.snapshot.queryParamMap),
+    this.normalizar(filtrosDeUrl(this.route.snapshot.queryParamMap)),
   );
-  protected readonly conFiltros = computed(() => tieneFiltros(this.actual()));
+  /** La facultad preseleccionada (unica permitida) no cuenta como filtro elegido. */
+  protected readonly conFiltros = computed(() => tieneFiltros(this.sinFija(this.actual())));
   protected readonly pagina = signal<PaginaRepositorio | null>(null);
   protected readonly cargando = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly errorCatalogos = signal<string | null>(null);
 
   constructor() {
-    if (!this.publico) {
-      this.catalogo.facultades
-        .listar()
-        .pipe(takeUntilDestroyed())
-        .subscribe({
-          next: (f) => this.facultades.set(f),
-          error: () => this.avisarCatalogos(),
-        });
-    }
+    // En modo publico los catalogos se leen sin token (catalog-api 1.3.0).
+    this.catalogo.facultades
+      .listar()
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (f) => {
+          const permitidas = this.permitidas;
+          this.facultades.set(permitidas ? f.filter((x) => permitidas.includes(x.idFacultad)) : f);
+        },
+        error: () => this.avisarCatalogos(),
+      });
+
+    // Al terminar la espera por 429 se repite la busqueda que quedo pendiente.
+    effect(() => {
+      if (!this.espera.bloqueado() && this.pendiente()) {
+        untracked(() => this.buscar(this.actual()));
+      }
+    });
 
     // URL -> formulario + busqueda (carga inicial, enlaces compartidos, atras/adelante).
     this.route.queryParamMap
@@ -348,9 +389,14 @@ export class RepositorioComponent {
     return this.actual().idFacultad !== null ? texto : 'Elige una facultad';
   }
 
-  /** Enter en el buscador: busca sin esperar el debounce. */
+  /**
+   * Enter en el buscador: busca sin esperar el debounce. Si la busqueda no cambio pero la ultima
+   * fallo (error o 429 sin Retry-After), la reintenta.
+   */
   protected buscarAhora(): void {
-    this.navegar(0);
+    if (!this.navegar(0) && this.buscada === null && !this.espera.bloqueado()) {
+      this.buscar(this.actual());
+    }
   }
 
   protected irAPagina(pagina: number): void {
@@ -377,7 +423,7 @@ export class RepositorioComponent {
       {
         q: '',
         hashtag: '',
-        idFacultad: null,
+        idFacultad: this.facultadFija,
         idCarrera: null,
         idMateria: null,
         idSemestre: null,
@@ -389,8 +435,14 @@ export class RepositorioComponent {
     this.navegar(0);
   }
 
-  /** Lleva el estado del formulario a la URL; la busqueda la dispara el cambio de URL. */
-  private navegar(pagina: number, tamano = this.actual().tamano): void {
+  /**
+   * Lleva el estado del formulario a la URL; la busqueda la dispara el cambio de URL. Devuelve
+   * false si no navego (busqueda igual a la actual o buscador en espera por 429).
+   */
+  private navegar(pagina: number, tamano = this.actual().tamano): boolean {
+    if (this.espera.bloqueado()) {
+      return false;
+    }
     const v = this.filtros.getRawValue();
     const nuevo: FiltrosRepositorio = {
       ...v,
@@ -400,20 +452,55 @@ export class RepositorioComponent {
       tamano,
     };
     if (mismaBusqueda(nuevo, this.actual())) {
-      return;
+      return false;
     }
-    void this.router.navigate([], { relativeTo: this.route, queryParams: urlDeFiltros(nuevo) });
+    void this.router.navigate([], { relativeTo: this.route, queryParams: this.paramsUrl(nuevo) });
+    return true;
   }
 
-  private aplicarUrl(f: FiltrosRepositorio): void {
+  private aplicarUrl(desdeUrl: FiltrosRepositorio): void {
+    const f = this.normalizar(desdeUrl);
     this.actual.set(f);
-    this.ultimaBusqueda.params.set(urlDeFiltros(f));
+    this.ultimaBusqueda.params.set(this.paramsUrl(f));
     this.sincronizarFormulario(f);
-    if (!this.publico) {
-      this.cargarDependientes(f.idFacultad);
-      this.cargarGrupos(f);
+    this.cargarDependientes(f.idFacultad);
+    this.cargarGrupos(f);
+    // Misma busqueda que la que ya esta en curso o respondida: no se repite.
+    if (this.buscada !== null && mismaBusqueda(f, this.buscada)) {
+      return;
     }
     this.buscar(f);
+  }
+
+  /**
+   * Limita la facultad a las permitidas (un enlace con otra facultad se ignora junto con sus
+   * filtros dependientes) y, si hay una sola, la preselecciona.
+   */
+  private normalizar(f: FiltrosRepositorio): FiltrosRepositorio {
+    const permitidas = this.permitidas;
+    if (permitidas === null) {
+      return f;
+    }
+    if (f.idFacultad !== null && !permitidas.includes(f.idFacultad)) {
+      f = { ...f, idFacultad: null };
+      for (const k of DEPENDIENTES) {
+        f[k] = null;
+      }
+    }
+    return f.idFacultad === null && this.facultadFija !== null
+      ? { ...f, idFacultad: this.facultadFija }
+      : f;
+  }
+
+  /** La facultad preseleccionada no se escribe en la URL (enlaces cortos y estables). */
+  private sinFija(f: FiltrosRepositorio): FiltrosRepositorio {
+    return this.facultadFija !== null && f.idFacultad === this.facultadFija
+      ? { ...f, idFacultad: null }
+      : f;
+  }
+
+  private paramsUrl(f: FiltrosRepositorio): Params {
+    return urlDeFiltros(this.sinFija(f));
   }
 
   /** Solo toca los campos que difieren (no pisa lo que se esta escribiendo, p. ej. un espacio final). */
@@ -451,8 +538,18 @@ export class RepositorioComponent {
 
   private buscar(f: FiltrosRepositorio): void {
     this.busqueda?.unsubscribe();
+    this.buscada = null;
+    if (this.espera.bloqueado()) {
+      // Atras/adelante durante la espera: se buscara al terminar.
+      this.cargando.set(false);
+      this.pendiente.set(true);
+      return;
+    }
+    this.pendiente.set(false);
+    this.buscada = f;
     this.cargando.set(true);
     this.error.set(null);
+    this.espera.limpiarAviso();
     this.busqueda = this.fuente
       .buscar(aFiltroApi(f))
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -463,6 +560,12 @@ export class RepositorioComponent {
         },
         error: (err: unknown) => {
           this.cargando.set(false);
+          this.buscada = null;
+          if (this.espera.manejar(err)) {
+            // 429: se conservan los resultados anteriores; con Retry-After se reintenta solo.
+            this.pendiente.set(this.espera.bloqueado());
+            return;
+          }
           this.pagina.set(null);
           this.error.set(mensajeDeError(err, 'No se pudo buscar en el repositorio.'));
         },
