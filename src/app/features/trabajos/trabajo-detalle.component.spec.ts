@@ -17,9 +17,11 @@ import {
   SIN_ACCIONES,
   trabajoDePrueba,
 } from '../../core/services/testing-trabajos';
+import { analisisDePrueba } from '../../core/services/testing-plagio';
 import { TrabajoDetalleComponent } from './trabajo-detalle.component';
 
 const API = '/api/v1';
+const SIN_ANALISIS = { status: 404, title: 'No encontrado', timestamp: '2026-11-17T14:00:00Z' };
 
 describe('TrabajoDetalleComponent', () => {
   let fixture: ComponentFixture<TrabajoDetalleComponent>;
@@ -67,6 +69,12 @@ describe('TrabajoDetalleComponent', () => {
           (r) => r.url === `${API}/documentos/reglas` && r.params.get('idFacultad') === '1',
         )
         .flush(respuesta(REGLAS));
+    }
+    await render();
+    // Docente/ADMIN fuera de BORRADOR/RECHAZADO: el panel de plagio pide el ultimo analisis
+    // (sus casos estan en panel-plagio.component.spec.ts); aqui, "nunca se analizo".
+    for (const r of http.match(`${API}/plagio/trabajos/7`)) {
+      r.flush(SIN_ANALISIS, { status: 404, statusText: 'Not Found' });
     }
     await render();
   }
@@ -527,5 +535,41 @@ describe('TrabajoDetalleComponent', () => {
     expect(vista.querySelector('.alert-danger')?.textContent).toContain(
       'no existe o no tienes permiso',
     );
+  });
+
+  // ------------------------------------------------------------------ Plagio (CU14)
+
+  it('panel de plagio: el estudiante no lo ve ni se consulta', async () => {
+    // http.verify (afterEach) comprueba que no hubo GET /plagio.
+    await abrir(trabajoDePrueba({ estado: 'EVALUADO', acciones: SIN_ACCIONES }));
+    expect(vista.querySelector('app-panel-plagio')).toBeNull();
+  });
+
+  it('panel de plagio: el docente no lo ve en BORRADOR ni en RECHAZADO', async () => {
+    for (const estado of ['BORRADOR', 'RECHAZADO'] as const) {
+      await abrir(trabajoDePrueba({ estado, acciones: SIN_ACCIONES }), 'DOCENTE');
+      expect(vista.querySelector('app-panel-plagio')).toBeNull();
+      fixture.destroy();
+    }
+  });
+
+  it('panel de plagio: ADMIN lo ve en PENDIENTE (sin análisis todavía)', async () => {
+    await abrir(trabajoDePrueba({ estado: 'PENDIENTE', acciones: SIN_ACCIONES }), 'ADMIN');
+    expect(vista.querySelector('app-panel-plagio')?.textContent).toContain('Analizar plagio');
+  });
+
+  it('al entrar desde la notificación PLAGIO_COMPLETADO el panel muestra el resultado', async () => {
+    sessionStorage.setItem('repositorio.sesion', JSON.stringify(tokensDePrueba('DOCENTE')));
+    fixture = TestBed.createComponent(TrabajoDetalleComponent);
+    vista = fixture.nativeElement;
+    fixture.componentRef.setInput('id', '7');
+    await render();
+    flushTrabajo(trabajoDePrueba({ estado: 'EN_REVISION', acciones: SIN_ACCIONES }));
+    http.expectOne((r) => r.url === `${API}/fases`).flush(respuesta(FASES));
+    await render();
+    http.expectOne(`${API}/plagio/trabajos/7`).flush(respuesta(analisisDePrueba()));
+    await render();
+    expect(vista.querySelector('.semaforo-plagio')?.textContent).toContain('Similitud media');
+    expect(vista.querySelectorAll('.tabla-fuentes tbody tr')).toHaveLength(3);
   });
 });

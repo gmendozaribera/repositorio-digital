@@ -15,7 +15,7 @@ const OPENAPI_DIR = resolve(
 );
 
 /** Servicio -> carpeta de salida en src/app/api. */
-const SERVICIOS = ['auth', 'catalog', 'user', 'work'];
+const SERVICIOS = ['auth', 'catalog', 'user', 'work', 'plagio'];
 
 const pedidos = process.argv.slice(2);
 const servicios = pedidos.length ? pedidos : SERVICIOS;

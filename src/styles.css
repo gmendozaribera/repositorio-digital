@@ -1428,3 +1428,182 @@ h3 {
 .orden-resultados {
   margin: 0.5rem 0 0;
 }
+
+/* Deteccion de plagio (CU14) */
+.plagio {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.plagio > h2 {
+  margin-top: 0;
+}
+
+.progreso-indeterminado {
+  position: relative;
+  height: 0.4rem;
+  margin: 0.5rem 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--accent-lt);
+}
+
+.progreso-indeterminado::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  border-radius: var(--radius);
+  background: var(--accent);
+  animation: progreso-indeterminado 1.4s ease-in-out infinite;
+}
+
+@keyframes progreso-indeterminado {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progreso-indeterminado::after {
+    width: 100%;
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+.semaforo-plagio {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin: 0.5rem 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border-left: 6px solid;
+}
+
+.semaforo-plagio p {
+  margin: 0;
+}
+
+.semaforo-plagio.nivel-verde {
+  border-color: #16a34a;
+  background: var(--success-bg);
+}
+
+.semaforo-plagio.nivel-amarillo {
+  border-color: #ca8a04;
+  background: var(--warn-bg);
+}
+
+.semaforo-plagio.nivel-rojo {
+  border-color: #dc2626;
+  background: var(--danger-bg);
+}
+
+.luces {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  border-radius: 1rem;
+  background: #1e293b;
+}
+
+.luz {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  opacity: 0.2;
+}
+
+.luz.encendida {
+  opacity: 1;
+  box-shadow: 0 0 0.5rem currentColor;
+}
+
+.luz-verde {
+  background: #22c55e;
+  color: #22c55e;
+}
+
+.luz-amarillo {
+  background: #facc15;
+  color: #facc15;
+}
+
+.luz-rojo {
+  background: #ef4444;
+  color: #ef4444;
+}
+
+.plagio-porcentaje {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.plagio-nivel {
+  font-weight: 700;
+}
+
+.nivel-verde .plagio-nivel {
+  color: var(--success);
+}
+
+.nivel-amarillo .plagio-nivel {
+  color: var(--warn);
+}
+
+.nivel-rojo .plagio-nivel {
+  color: var(--danger);
+}
+
+.celda-similitud {
+  white-space: nowrap;
+}
+
+.barra-fuente {
+  display: inline-block;
+  width: 6rem;
+  height: 0.5rem;
+  margin-right: 0.5rem;
+  overflow: hidden;
+  vertical-align: middle;
+  border-radius: var(--radius);
+  background: var(--accent-lt);
+}
+
+.barra-fuente > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.nivel-chip {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+}
+
+.nivel-chip.nivel-verde {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.nivel-chip.nivel-amarillo {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.nivel-chip.nivel-rojo {
+  background: var(--danger-bg);
+  color: var(--danger);
+}

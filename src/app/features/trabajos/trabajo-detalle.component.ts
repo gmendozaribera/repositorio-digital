@@ -42,6 +42,7 @@ import {
 } from '../../shared/archivos';
 import { EstadoTrabajoComponent, textoEstado } from '../../shared/estado-trabajo';
 import { fechaAbsoluta, fechaRelativa } from '../../shared/fecha-relativa';
+import { PanelPlagioComponent } from './panel-plagio.component';
 import { SubidaArchivosComponent } from './subida-archivos.component';
 
 const ACTIVO = 1;
@@ -71,7 +72,13 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
  */
 @Component({
   selector: 'app-trabajo-detalle',
-  imports: [ReactiveFormsModule, RouterLink, EstadoTrabajoComponent, SubidaArchivosComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    EstadoTrabajoComponent,
+    SubidaArchivosComponent,
+    PanelPlagioComponent,
+  ],
   template: `
     <section class="card detalle-trabajo">
       <p class="volver">
@@ -563,6 +570,10 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
           <p class="estado-vacio">La facultad aún no tiene fases configuradas.</p>
         }
 
+        @if (mostrarPlagio()) {
+          <app-panel-plagio [idTrabajo]="t.idTrabajo" />
+        }
+
         <h2>Historial</h2>
         <ol class="linea-tiempo">
           @for (c of t.historial; track $index) {
@@ -664,6 +675,21 @@ export class TrabajoDetalleComponent implements OnInit {
     const t = this.trabajo();
     return (
       !!t?.observaciones && (t.estado === 'RECHAZADO' || t.estado === 'APROBADO_CON_OBSERVACIONES')
+    );
+  });
+
+  /**
+   * Panel de plagio (CU14): solo docentes y ADMIN (los estudiantes no ven resultados) y en los
+   * estados que el backend permite analizar. El backend vuelve a validar (docente del grupo).
+   */
+  protected readonly mostrarPlagio = computed(() => {
+    const rol = this.auth.usuario()?.rol;
+    const estado = this.trabajo()?.estado;
+    return (
+      (rol === 'DOCENTE' || rol === 'ADMIN') &&
+      !!estado &&
+      estado !== 'BORRADOR' &&
+      estado !== 'RECHAZADO'
     );
   });
 
