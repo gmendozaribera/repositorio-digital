@@ -4,7 +4,7 @@ import { FormControl, NonNullableFormBuilder, ReactiveFormsModule } from '@angul
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, merge, Observable, Subscription } from 'rxjs';
 import type { Carrera, Facultad, Materia, Semestre, TipoTrabajo } from '../../api/catalog';
-import type { PaginaTrabajos } from '../../api/work';
+import type { PaginaRepositorio } from '../../api/work';
 import { mensajeDeError } from '../../core/http/error-message';
 import { CatalogoService } from '../../core/services/catalogo.service';
 import { TrabajoService } from '../../core/services/trabajo.service';
@@ -177,6 +177,26 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idTipoTrabajo'] a
                   {{ t.siglaMateria }} — {{ t.nombreMateria }} · {{ t.periodo }}
                 </p>
                 <span class="badge badge-muted">{{ t.tipoTrabajo }}</span>
+                @if (t.extracto) {
+                  <p class="tarjeta-extracto">{{ t.extracto }}</p>
+                }
+                @if (t.hashtags.length) {
+                  <ul class="chips" aria-label="Hashtags">
+                    @for (h of t.hashtags; track h) {
+                      <li>
+                        <button
+                          class="chip chip-enlace"
+                          type="button"
+                          [attr.aria-pressed]="actual().hashtag === h"
+                          [attr.aria-label]="'Filtrar por el hashtag ' + h"
+                          (click)="aplicarHashtag(h)"
+                        >
+                          #{{ h }}
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
               </li>
             }
           </ul>
@@ -229,7 +249,7 @@ export class RepositorioComponent {
     filtrosDeUrl(this.route.snapshot.queryParamMap),
   );
   protected readonly conFiltros = computed(() => tieneFiltros(this.actual()));
-  protected readonly pagina = signal<PaginaTrabajos | null>(null);
+  protected readonly pagina = signal<PaginaRepositorio | null>(null);
   protected readonly cargando = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly errorCatalogos = signal<string | null>(null);
@@ -284,6 +304,12 @@ export class RepositorioComponent {
 
   protected quitarHashtag(): void {
     this.filtros.controls.hashtag.setValue('', { emitEvent: false });
+    this.navegar(0);
+  }
+
+  /** Clic en un hashtag de un resultado: lo aplica como filtro (pagina 1). */
+  protected aplicarHashtag(hashtag: string): void {
+    this.filtros.controls.hashtag.setValue(normalizarHashtag(hashtag), { emitEvent: false });
     this.navegar(0);
   }
 

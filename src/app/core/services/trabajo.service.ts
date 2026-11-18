@@ -6,6 +6,7 @@ import type {
   Documento,
   EnlaceRequest,
   EstadoTrabajo,
+  PaginaRepositorio,
   PaginaTrabajos,
   ReglasDocumentos,
   RespuestaDocumento,
@@ -151,7 +152,7 @@ export class TrabajoService {
    * Trabajos evaluados (publicados), mas recientes primero. Cualquier rol autenticado.
    * No manda filtros vacios: `?q=` o `?idFacultad=` filtrarian por "nada".
    */
-  buscarEnRepositorio(filtro?: FiltroRepositorio): Observable<PaginaTrabajos> {
+  buscarEnRepositorio(filtro?: FiltroRepositorio): Observable<PaginaRepositorio> {
     const f = sinVacios(filtro);
     if (typeof f.q === 'string') {
       f.q = f.q.trim() || undefined;

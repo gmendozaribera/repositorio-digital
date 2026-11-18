@@ -12,7 +12,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { provideApi } from '../../core/api/api.providers';
 import { PaginaVacia, respuesta, tokensDePrueba } from '../../core/auth/testing';
 import { pagina } from '../../core/services/testing';
-import { resumenDePrueba } from '../../core/services/testing-trabajos';
+import { resultadoRepositorioDePrueba } from '../../core/services/testing-trabajos';
 import { DEBOUNCE_BUSQUEDA_MS, RepositorioComponent } from './repositorio.component';
 
 const API = '/api/v1';
@@ -204,8 +204,8 @@ describe('RepositorioComponent', () => {
     await harness.navigateByUrl('/repositorio?idTipoTrabajo=4');
     busqueda(
       [
-        resumenDePrueba({ estado: 'EVALUADO', autores: ['Juan Perez', 'Ana Rojas'] }),
-        resumenDePrueba({ idTrabajo: 8, titulo: 'App móvil', estado: 'EVALUADO' }),
+        resultadoRepositorioDePrueba({ autores: ['Juan Perez', 'Ana Rojas'] }),
+        resultadoRepositorioDePrueba({ idTrabajo: 8, titulo: 'App móvil', hashtags: [] }),
       ],
       25,
     );
@@ -217,6 +217,14 @@ describe('RepositorioComponent', () => {
     expect(tarjetas[0].textContent).toContain('Juan Perez, Ana Rojas');
     expect(tarjetas[0].textContent).toContain('INF412 — Ingeniería de Software I · 2-2026');
     expect(tarjetas[0].textContent).toContain('Proyecto de materia');
+    // Extracto (ya cortado por el servidor) y hashtags como chips.
+    expect(tarjetas[0].querySelector('.tarjeta-extracto')?.textContent).toContain(
+      'análisis y diseño',
+    );
+    expect(
+      Array.from(tarjetas[0].querySelectorAll('.chips button')).map((b) => b.textContent?.trim()),
+    ).toEqual(['#springboot', '#inventarios']);
+    expect(tarjetas[1].querySelector('.chips')).toBeNull();
 
     Array.from(vista.querySelectorAll<HTMLButtonElement>('.paginador button'))
       .find((b) => b.textContent?.includes('Siguiente'))!
@@ -239,5 +247,30 @@ describe('RepositorioComponent', () => {
     expect(busqueda().request.params.has('hashtag')).toBe(false);
     await render();
     expect(vista.querySelector('.filtros-activos')).toBeNull();
+  });
+
+  it('clic en un hashtag de un resultado lo aplica como filtro y vuelve a la página 1', async () => {
+    harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/repositorio?q=sistema&pagina=2');
+    vista = harness.routeNativeElement!;
+    http.expectOne(`${API}/facultades`).flush(respuesta(FACULTADES));
+    catalogos();
+    busqueda([resultadoRepositorioDePrueba()], 15);
+    await render();
+
+    vista.querySelector<HTMLButtonElement>('.tarjeta-trabajo .chips button')!.click();
+    await render();
+    expect(url()).toBe('/repositorio?q=sistema&hashtag=springboot');
+    const req = busqueda([resultadoRepositorioDePrueba()]);
+    expect(req.request.params.get('hashtag')).toBe('springboot');
+    expect(req.request.params.get('q')).toBe('sistema');
+    expect(req.request.params.get('pagina')).toBe('0');
+    await render();
+    expect(vista.querySelector<HTMLInputElement>('input[formcontrolname=hashtag]')!.value).toBe(
+      'springboot',
+    );
+    expect(
+      vista.querySelector('.tarjeta-trabajo .chips button')?.getAttribute('aria-pressed'),
+    ).toBe('true');
   });
 });

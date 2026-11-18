@@ -4,6 +4,7 @@ import type {
   ReglasDocumentos,
   Trabajo,
   TrabajoPublico,
+  TrabajoRepositorioResumen,
   TrabajoResumen,
 } from '../../api/work';
 
@@ -138,6 +139,25 @@ export function resumenDePrueba(cambios: Partial<TrabajoResumen> = {}): TrabajoR
     autores: ['Juan Perez'],
     fechaActualizacion: '2026-11-16T13:00:00Z',
     fechaEnvio: '2026-11-16T14:00:00Z',
+    ...cambios,
+  };
+}
+
+/** Resultado del buscador del repositorio (GET /repositorio). */
+export function resultadoRepositorioDePrueba(
+  cambios: Partial<TrabajoRepositorioResumen> = {},
+): TrabajoRepositorioResumen {
+  return {
+    idTrabajo: 7,
+    titulo: 'Sistema de inventarios',
+    extracto: 'El trabajo presenta el análisis y diseño de un sistema de inventarios.',
+    hashtags: ['springboot', 'inventarios'],
+    autores: ['Juan Perez'],
+    siglaMateria: 'INF412',
+    nombreMateria: 'Ingeniería de Software I',
+    periodo: '2-2026',
+    tipoTrabajo: 'Proyecto de materia',
+    fechaPublicacion: '2026-11-20T10:00:00Z',
     ...cambios,
   };
 }

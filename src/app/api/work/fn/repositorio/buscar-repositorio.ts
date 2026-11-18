@@ -7,7 +7,7 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { RespuestaPaginaTrabajos } from '../../models/respuesta-pagina-trabajos';
+import { RespuestaPaginaRepositorio } from '../../models/respuesta-pagina-repositorio';
 
 export interface BuscarRepositorio$Params {
   q?: string;
@@ -58,7 +58,7 @@ export function buscarRepositorio(
   rootUrl: string,
   params?: BuscarRepositorio$Params,
   context?: HttpContext,
-): Observable<StrictHttpResponse<RespuestaPaginaTrabajos>> {
+): Observable<StrictHttpResponse<RespuestaPaginaRepositorio>> {
   const rb = new RequestBuilder(rootUrl, buscarRepositorio.PATH, 'get');
   if (params) {
     rb.query('q', params.q, {});
@@ -75,7 +75,7 @@ export function buscarRepositorio(
   return http.request(rb.build({ responseType: 'json', accept: 'application/json', context })).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<RespuestaPaginaTrabajos>;
+      return r as StrictHttpResponse<RespuestaPaginaRepositorio>;
     }),
   );
 }

@@ -14,7 +14,7 @@ import { buscarRepositorio } from '../fn/repositorio/buscar-repositorio';
 import { BuscarRepositorio$Params } from '../fn/repositorio/buscar-repositorio';
 import { obtenerTrabajoRepositorio } from '../fn/repositorio/obtener-trabajo-repositorio';
 import { ObtenerTrabajoRepositorio$Params } from '../fn/repositorio/obtener-trabajo-repositorio';
-import { RespuestaPaginaTrabajos } from '../models/respuesta-pagina-trabajos';
+import { RespuestaPaginaRepositorio } from '../models/respuesta-pagina-repositorio';
 import { RespuestaTrabajoPublico } from '../models/respuesta-trabajo-publico';
 
 /**
@@ -44,7 +44,7 @@ export class RepositorioService extends BaseService {
   buscarRepositorio$Response(
     params?: BuscarRepositorio$Params,
     context?: HttpContext,
-  ): Observable<StrictHttpResponse<RespuestaPaginaTrabajos>> {
+  ): Observable<StrictHttpResponse<RespuestaPaginaRepositorio>> {
     const obs = buscarRepositorio(this.http, this.rootUrl, params, context);
     return obs;
   }
@@ -64,10 +64,12 @@ export class RepositorioService extends BaseService {
   buscarRepositorio(
     params?: BuscarRepositorio$Params,
     context?: HttpContext,
-  ): Observable<RespuestaPaginaTrabajos> {
+  ): Observable<RespuestaPaginaRepositorio> {
     const resp = this.buscarRepositorio$Response(params, context);
     return resp.pipe(
-      map((r: StrictHttpResponse<RespuestaPaginaTrabajos>): RespuestaPaginaTrabajos => r.body),
+      map(
+        (r: StrictHttpResponse<RespuestaPaginaRepositorio>): RespuestaPaginaRepositorio => r.body,
+      ),
     );
   }
 

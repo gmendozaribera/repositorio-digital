@@ -8,6 +8,7 @@ import {
   archivoDePrueba,
   DOCUMENTO_PDF,
   publicoDePrueba,
+  resultadoRepositorioDePrueba,
   REGLAS,
   resumenDePrueba,
   trabajoDePrueba,
@@ -217,7 +218,7 @@ describe('TrabajoService', () => {
     expect(req.request.params.get('q')).toBe('inventarios');
     expect(req.request.params.get('hashtag')).toBe('SpringBoot');
     expect(req.request.params.get('idFacultad')).toBe('1');
-    req.flush(respuesta(pagina([resumenDePrueba({ estado: 'EVALUADO' })])));
+    req.flush(respuesta(pagina([resultadoRepositorioDePrueba()])));
     expect(total).toBe(1);
 
     // Texto en blanco = sin filtro (no `?q=`).

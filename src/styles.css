@@ -1389,6 +1389,23 @@ h3 {
 
 .chip-enlace {
   text-decoration: none;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chip-enlace[aria-pressed='true'] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--surface);
+}
+
+.tarjeta-extracto {
+  font-size: 0.9rem;
+}
+
+.tarjeta-trabajo .chips {
+  margin: 0.25rem 0 0;
 }
 
 .chip-enlace:hover,
