@@ -14,7 +14,7 @@ export interface RecibirWebhookCopyleaks$Params {
    * Token secreto del webhook (variable de entorno). Si no coincide responde 404.
    */
   token: string;
-  evento: 'completed' | 'error' | 'creditsChecked' | 'indexed';
+  evento: 'completed' | 'error' | 'creditsChecked' | 'creditschecked' | 'indexed';
   scanId: string;
   body: {
     [key: string]: any;

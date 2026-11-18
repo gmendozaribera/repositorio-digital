@@ -119,7 +119,7 @@ export class PlagioService extends BaseService {
   /**
    * Estado del analisis en curso (para consultar periodicamente).
    *
-   * Liviano: se responde desde cache mientras el analisis esta en curso. Cuando `estado` pasa a `COMPLETADO`
+   * Liviano: el estado del analisis se responde desde cache (los permisos se verifican siempre). Cuando `estado` pasa a `COMPLETADO`
    * o `ERROR`, pedir el resultado completo con `GET /api/v1/plagio/trabajos/{id}`.
    * 404 si el trabajo nunca se analizo.
    *
@@ -139,7 +139,7 @@ export class PlagioService extends BaseService {
   /**
    * Estado del analisis en curso (para consultar periodicamente).
    *
-   * Liviano: se responde desde cache mientras el analisis esta en curso. Cuando `estado` pasa a `COMPLETADO`
+   * Liviano: el estado del analisis se responde desde cache (los permisos se verifican siempre). Cuando `estado` pasa a `COMPLETADO`
    * o `ERROR`, pedir el resultado completo con `GET /api/v1/plagio/trabajos/{id}`.
    * 404 si el trabajo nunca se analizo.
    *

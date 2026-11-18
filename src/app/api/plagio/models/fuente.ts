@@ -4,11 +4,16 @@
 import { TipoFuente } from '../models/tipo-fuente';
 export interface Fuente {
   /**
-   * Solo fuentes internas (otro trabajo del repositorio).
+   * Solo fuentes INTERNA publicadas (EVALUADO), enlazable a /repositorio/{idTrabajo}; null en las no publicadas.
    */
   idTrabajo: number | null;
   porcentaje: number;
   tipo: TipoFuente;
+
+  /**
+   * Titulo de la fuente. Para una fuente INTERNA que no esta publicada (no EVALUADO) se devuelve el texto
+   * generico "Trabajo no publicado del repositorio interno" (no se revelan trabajos ajenos no publicados).
+   */
   titulo: string;
 
   /**

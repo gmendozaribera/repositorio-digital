@@ -12,7 +12,7 @@ export interface Analisis {
   fechaInicio: string;
 
   /**
-   * Ordenadas por porcentaje descendente (maximo 20).
+   * Ordenadas por porcentaje descendente (maximo PLAGIO_GROUP.MAX_FUENTES, por defecto 20).
    */
   fuentes: Array<Fuente>;
   idAnalisis: number;
