@@ -17,9 +17,10 @@ const MENU_POR_ROL: Record<Rol, EnlaceMenu[]> = {
     { ruta: '/admin/padron', texto: 'Padrón' },
     { ruta: '/admin/parametros', texto: 'Parámetros' },
     { ruta: '/admin/configuracion', texto: 'Configuración' },
+    { ruta: '/admin/revision', texto: 'Revisión' },
   ],
-  DOCENTE: [],
-  ESTUDIANTE: [],
+  DOCENTE: [{ ruta: '/docente/revision', texto: 'Bandeja de revisión' }],
+  ESTUDIANTE: [{ ruta: '/estudiante/trabajos', texto: 'Mis trabajos' }],
 };
 
 /** Marco de las paginas autenticadas: barra superior + contenido. */

@@ -21,8 +21,14 @@ const DESCRIPCION_POR_ROL: Record<Rol, string> = {
         @if (usuario.rol === 'ADMIN') {
           <p><a class="btn btn-primary" routerLink="/admin/catalogos">Gestionar catálogos</a></p>
           <p class="muted">Usuarios, padrón y configuración se habilitarán próximamente.</p>
+        } @else if (usuario.rol === 'DOCENTE') {
+          <p>
+            <a class="btn btn-primary" routerLink="/docente/revision"
+              >Ir a la bandeja de revisión</a
+            >
+          </p>
         } @else {
-          <p class="muted">Los módulos de tu rol se habilitarán en los próximos sprints.</p>
+          <p><a class="btn btn-primary" routerLink="/estudiante/trabajos">Ir a mis trabajos</a></p>
         }
         @if (!usuario.twoFactorEnabled) {
           <p class="alert alert-info">

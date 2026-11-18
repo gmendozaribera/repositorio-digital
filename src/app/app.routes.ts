@@ -63,6 +63,16 @@ export const routes: Routes = [
           import('./features/perfil/seguridad.component').then((m) => m.SeguridadComponent),
       },
       {
+        // Detalle de un trabajo: estudiante (autor), docente del grupo o admin. Es el enlace de
+        // las notificaciones de trabajos. Quien no puede verlo recibe 404 del backend.
+        path: 'trabajos/:id',
+        title: 'Trabajo · Repositorio Digital',
+        loadComponent: () =>
+          import('./features/trabajos/trabajo-detalle.component').then(
+            (m) => m.TrabajoDetalleComponent,
+          ),
+      },
+      {
         path: 'notificaciones',
         title: 'Notificaciones · Repositorio Digital',
         loadComponent: () =>
