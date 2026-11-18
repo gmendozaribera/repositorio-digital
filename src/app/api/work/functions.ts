@@ -31,3 +31,7 @@ export type { DescargarDocumento$Params as DescargarDocumento$Params } from './f
 export { descargarDocumento as descargarDocumento } from './fn/documentos/descargar-documento';
 export type { ObtenerReglasDocumentos$Params as ObtenerReglasDocumentos$Params } from './fn/documentos/obtener-reglas-documentos';
 export { obtenerReglasDocumentos as obtenerReglasDocumentos } from './fn/documentos/obtener-reglas-documentos';
+export type { BuscarRepositorio$Params as BuscarRepositorio$Params } from './fn/repositorio/buscar-repositorio';
+export { buscarRepositorio as buscarRepositorio } from './fn/repositorio/buscar-repositorio';
+export type { ObtenerTrabajoRepositorio$Params as ObtenerTrabajoRepositorio$Params } from './fn/repositorio/obtener-trabajo-repositorio';
+export { obtenerTrabajoRepositorio as obtenerTrabajoRepositorio } from './fn/repositorio/obtener-trabajo-repositorio';

@@ -10,12 +10,14 @@ import type {
   ReglasDocumentos,
   RespuestaDocumento,
   Trabajo,
+  TrabajoPublico,
   TrabajoRequest,
 } from '../../api/work';
 import { ApiConfiguration } from '../../api/work/api-configuration';
 import { subirDocumento } from '../../api/work/fn/documentos/subir-documento';
 import { RequestBuilder } from '../../api/work/request-builder';
 import { DocumentosService } from '../../api/work/services/documentos.service';
+import { RepositorioService } from '../../api/work/services/repositorio.service';
 import { RevisionService } from '../../api/work/services/revision.service';
 import { TrabajosService } from '../../api/work/services/trabajos.service';
 import { nombreDeContentDisposition } from '../../shared/archivos';
@@ -29,6 +31,22 @@ export interface FiltroTrabajos {
 
 export interface FiltroRevision extends FiltroTrabajos {
   idGrupo?: number;
+}
+
+/**
+ * Busqueda en el repositorio (solo trabajos EVALUADO). Todos los filtros se combinan (Y);
+ * `q` busca en titulo, resumen y hashtags; `hashtag` es exacto y sin '#'.
+ */
+export interface FiltroRepositorio {
+  q?: string;
+  hashtag?: string;
+  idFacultad?: number;
+  idCarrera?: number;
+  idMateria?: number;
+  idSemestre?: number;
+  idTipoTrabajo?: number;
+  pagina?: number;
+  tamano?: number;
 }
 
 export interface SubidaDocumento {
@@ -68,6 +86,7 @@ export class TrabajoService {
   private readonly trabajosApi = inject(TrabajosService);
   private readonly revisionApi = inject(RevisionService);
   private readonly documentosApi = inject(DocumentosService);
+  private readonly repositorioApi = inject(RepositorioService);
   private readonly config = inject(ApiConfiguration);
   private readonly http = inject(HttpClient);
 
@@ -124,6 +143,28 @@ export class TrabajoService {
     return this.revisionApi
       .rechazarTrabajo({ id, body: { motivo: motivo.trim() } })
       .pipe(map(data));
+  }
+
+  // ------------------------------------------------------------------ Repositorio (CU11)
+
+  /**
+   * Trabajos evaluados (publicados), mas recientes primero. Cualquier rol autenticado.
+   * No manda filtros vacios: `?q=` o `?idFacultad=` filtrarian por "nada".
+   */
+  buscarEnRepositorio(filtro?: FiltroRepositorio): Observable<PaginaTrabajos> {
+    const f = sinVacios(filtro);
+    if (typeof f.q === 'string') {
+      f.q = f.q.trim() || undefined;
+    }
+    if (typeof f.hashtag === 'string') {
+      f.hashtag = f.hashtag.trim().replace(/^#+/, '') || undefined;
+    }
+    return this.repositorioApi.buscarRepositorio(sinVacios(f)).pipe(map(data));
+  }
+
+  /** Ficha publica: sin calificacion, observaciones ni historial. 404 si no esta EVALUADO. */
+  obtenerPublico(id: number): Observable<TrabajoPublico> {
+    return this.repositorioApi.obtenerTrabajoRepositorio({ id }).pipe(map(data));
   }
 
   // ------------------------------------------------------------------ Documentos

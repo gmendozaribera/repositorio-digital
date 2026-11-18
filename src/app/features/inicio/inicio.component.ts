@@ -30,6 +30,10 @@ const DESCRIPCION_POR_ROL: Record<Rol, string> = {
         } @else {
           <p><a class="btn btn-primary" routerLink="/estudiante/trabajos">Ir a mis trabajos</a></p>
         }
+        <p>
+          <a class="btn btn-outline" routerLink="/repositorio">Explorar el repositorio</a>
+          <span class="muted texto-chico"> Trabajos evaluados de la facultad.</span>
+        </p>
         @if (!usuario.twoFactorEnabled) {
           <p class="alert alert-info">
             Protege tu cuenta activando la

@@ -24,14 +24,17 @@ export type { RespuestaPaginaTrabajos } from './models/respuesta-pagina-trabajos
 export type { RespuestaReglasDocumentos } from './models/respuesta-reglas-documentos';
 export type { RespuestaSinDatos } from './models/respuesta-sin-datos';
 export type { RespuestaTrabajo } from './models/respuesta-trabajo';
+export type { RespuestaTrabajoPublico } from './models/respuesta-trabajo-publico';
 export type { TipoDocumento } from './models/tipo-documento';
 export type { Trabajo } from './models/trabajo';
+export type { TrabajoPublico } from './models/trabajo-publico';
 export type { TrabajoRequest } from './models/trabajo-request';
 export type { TrabajoResumen } from './models/trabajo-resumen';
 export { BaseService } from './base-service';
 export { TrabajosService } from './services/trabajos.service';
 export { RevisionService } from './services/revision.service';
 export { DocumentosService } from './services/documentos.service';
+export { RepositorioService } from './services/repositorio.service';
 
 export type { CrearTrabajo$Params as CrearTrabajo$Params } from './fn/trabajos/crear-trabajo';
 export { crearTrabajo as crearTrabajo } from './fn/trabajos/crear-trabajo';
@@ -63,3 +66,7 @@ export type { DescargarDocumento$Params as DescargarDocumento$Params } from './f
 export { descargarDocumento as descargarDocumento } from './fn/documentos/descargar-documento';
 export type { ObtenerReglasDocumentos$Params as ObtenerReglasDocumentos$Params } from './fn/documentos/obtener-reglas-documentos';
 export { obtenerReglasDocumentos as obtenerReglasDocumentos } from './fn/documentos/obtener-reglas-documentos';
+export type { BuscarRepositorio$Params as BuscarRepositorio$Params } from './fn/repositorio/buscar-repositorio';
+export { buscarRepositorio as buscarRepositorio } from './fn/repositorio/buscar-repositorio';
+export type { ObtenerTrabajoRepositorio$Params as ObtenerTrabajoRepositorio$Params } from './fn/repositorio/obtener-trabajo-repositorio';
+export { obtenerTrabajoRepositorio as obtenerTrabajoRepositorio } from './fn/repositorio/obtener-trabajo-repositorio';

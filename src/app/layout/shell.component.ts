@@ -9,7 +9,7 @@ interface EnlaceMenu {
   texto: string;
 }
 
-/** Modulos de cada rol en la barra superior (ademas de Inicio y Seguridad). */
+/** Modulos de cada rol en la barra superior (ademas de Inicio, Repositorio y Seguridad). */
 const MENU_POR_ROL: Record<Rol, EnlaceMenu[]> = {
   ADMIN: [
     { ruta: '/admin/catalogos', texto: 'Catálogos' },
@@ -37,6 +37,7 @@ const MENU_POR_ROL: Record<Rol, EnlaceMenu[]> = {
           [routerLinkActiveOptions]="{ exact: true }"
           >Inicio</a
         >
+        <a routerLink="/repositorio" routerLinkActive="active">Repositorio</a>
         @for (enlace of menu(); track enlace.ruta) {
           <a [routerLink]="enlace.ruta" routerLinkActive="active">{{ enlace.texto }}</a>
         }

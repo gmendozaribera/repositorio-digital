@@ -7,6 +7,7 @@ import { pagina } from './testing';
 import {
   archivoDePrueba,
   DOCUMENTO_PDF,
+  publicoDePrueba,
   REGLAS,
   resumenDePrueba,
   trabajoDePrueba,
@@ -189,5 +190,49 @@ describe('TrabajoService', () => {
     const del = http.expectOne(`${API}/documentos/41`);
     expect(del.request.method).toBe('DELETE');
     del.flush(respuesta(null));
+  });
+
+  it('busca en el repositorio sin mandar filtros vacíos y normaliza texto y hashtag', () => {
+    let total = 0;
+    servicio
+      .buscarEnRepositorio({
+        q: '  inventarios ',
+        hashtag: ' #SpringBoot',
+        idFacultad: 1,
+        idCarrera: undefined,
+        idMateria: undefined,
+        pagina: 0,
+        tamano: 10,
+      })
+      .subscribe((p) => (total = p.totalElementos));
+    const req = http.expectOne((r) => r.url === `${API}/repositorio`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.keys().sort()).toEqual([
+      'hashtag',
+      'idFacultad',
+      'pagina',
+      'q',
+      'tamano',
+    ]);
+    expect(req.request.params.get('q')).toBe('inventarios');
+    expect(req.request.params.get('hashtag')).toBe('SpringBoot');
+    expect(req.request.params.get('idFacultad')).toBe('1');
+    req.flush(respuesta(pagina([resumenDePrueba({ estado: 'EVALUADO' })])));
+    expect(total).toBe(1);
+
+    // Texto en blanco = sin filtro (no `?q=`).
+    servicio.buscarEnRepositorio({ q: '   ', hashtag: '#' }).subscribe();
+    const vacio = http.expectOne((r) => r.url === `${API}/repositorio`);
+    expect(vacio.request.params.keys()).toEqual([]);
+    vacio.flush(respuesta(pagina([])));
+  });
+
+  it('obtiene la ficha pública de un trabajo evaluado', () => {
+    let titulo = '';
+    servicio.obtenerPublico(7).subscribe((t) => (titulo = t.titulo));
+    const req = http.expectOne(`${API}/repositorio/7`);
+    expect(req.request.method).toBe('GET');
+    req.flush(respuesta(publicoDePrueba()));
+    expect(titulo).toBe('Sistema de inventarios');
   });
 });

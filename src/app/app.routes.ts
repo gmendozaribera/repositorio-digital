@@ -73,6 +73,24 @@ export const routes: Routes = [
           ),
       },
       {
+        // Repositorio de trabajos evaluados (CU11 basico): cualquier rol autenticado.
+        path: 'repositorio',
+        title: 'Repositorio de trabajos · Repositorio Digital',
+        loadComponent: () =>
+          import('./features/repositorio/repositorio.component').then(
+            (m) => m.RepositorioComponent,
+          ),
+      },
+      {
+        // Ficha publica (solo EVALUADO; 404 en otro caso).
+        path: 'repositorio/:id',
+        title: 'Trabajo publicado · Repositorio Digital',
+        loadComponent: () =>
+          import('./features/repositorio/ficha-publica.component').then(
+            (m) => m.FichaPublicaComponent,
+          ),
+      },
+      {
         path: 'notificaciones',
         title: 'Notificaciones · Repositorio Digital',
         loadComponent: () =>

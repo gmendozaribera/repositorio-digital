@@ -1321,3 +1321,78 @@ h3 {
   background: var(--bg);
   font-size: 0.9rem;
 }
+
+/* Repositorio de trabajos (buscador y ficha publica) */
+.buscador-texto {
+  max-width: 640px;
+}
+
+.buscador-texto input {
+  font-size: 1rem;
+}
+
+.filtros-activos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: -0.25rem 0 1rem;
+}
+
+.tarjetas-trabajos {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.tarjeta-trabajo {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.tarjeta-trabajo:hover,
+.tarjeta-trabajo:focus-within {
+  border-color: var(--accent);
+}
+
+.tarjeta-trabajo p {
+  margin: 0;
+}
+
+.tarjeta-titulo {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.tarjeta-titulo a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.tarjeta-titulo a:hover,
+.tarjeta-titulo a:focus-visible {
+  text-decoration: underline;
+}
+
+.tarjeta-autores {
+  font-size: 0.9rem;
+}
+
+.chip-enlace {
+  text-decoration: none;
+}
+
+.chip-enlace:hover,
+.chip-enlace:focus-visible {
+  border-color: var(--accent);
+  background: var(--surface);
+}

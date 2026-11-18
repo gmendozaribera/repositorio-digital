@@ -165,7 +165,8 @@ export class DocumentosService extends BaseService {
    * Descargar un archivo (quien puede ver el trabajo).
    *
    * Devuelve el archivo con `Content-Disposition: attachment` y su tipo real. Para un enlace externo
-   * devuelve 409 (se abre directamente su `urlExterno`).
+   * devuelve 409 (se abre directamente su `urlExterno`). Si el trabajo esta `EVALUADO`, cualquier usuario
+   * autenticado puede descargarlo.
    *
    * This method provides access to the full `HttpResponse`, allowing access to response headers.
    * To access only the response body, use `descargarDocumento()` instead.
@@ -184,7 +185,8 @@ export class DocumentosService extends BaseService {
    * Descargar un archivo (quien puede ver el trabajo).
    *
    * Devuelve el archivo con `Content-Disposition: attachment` y su tipo real. Para un enlace externo
-   * devuelve 409 (se abre directamente su `urlExterno`).
+   * devuelve 409 (se abre directamente su `urlExterno`). Si el trabajo esta `EVALUADO`, cualquier usuario
+   * autenticado puede descargarlo.
    *
    * This method provides access only to the response body.
    * To access the full response (for headers, for example), `descargarDocumento$Response()` instead.

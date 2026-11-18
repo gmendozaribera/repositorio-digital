@@ -4,3 +4,4 @@
 export { TrabajosService } from './services/trabajos.service';
 export { RevisionService } from './services/revision.service';
 export { DocumentosService } from './services/documentos.service';
+export { RepositorioService } from './services/repositorio.service';

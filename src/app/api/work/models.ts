@@ -19,7 +19,9 @@ export type { RespuestaPaginaTrabajos } from './models/respuesta-pagina-trabajos
 export type { RespuestaReglasDocumentos } from './models/respuesta-reglas-documentos';
 export type { RespuestaSinDatos } from './models/respuesta-sin-datos';
 export type { RespuestaTrabajo } from './models/respuesta-trabajo';
+export type { RespuestaTrabajoPublico } from './models/respuesta-trabajo-publico';
 export type { TipoDocumento } from './models/tipo-documento';
 export type { Trabajo } from './models/trabajo';
+export type { TrabajoPublico } from './models/trabajo-publico';
 export type { TrabajoRequest } from './models/trabajo-request';
 export type { TrabajoResumen } from './models/trabajo-resumen';

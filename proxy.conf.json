@@ -49,6 +49,11 @@
     "secure": false,
     "changeOrigin": false
   },
+  "/api/v1/repositorio": {
+    "target": "http://localhost:8084",
+    "secure": false,
+    "changeOrigin": false
+  },
   "/api/v1": {
     "target": "http://localhost:8082",
     "secure": false,

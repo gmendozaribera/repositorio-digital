@@ -3,6 +3,7 @@ import type {
   Documento,
   ReglasDocumentos,
   Trabajo,
+  TrabajoPublico,
   TrabajoResumen,
 } from '../../api/work';
 
@@ -137,6 +138,31 @@ export function resumenDePrueba(cambios: Partial<TrabajoResumen> = {}): TrabajoR
     autores: ['Juan Perez'],
     fechaActualizacion: '2026-11-16T13:00:00Z',
     fechaEnvio: '2026-11-16T14:00:00Z',
+    ...cambios,
+  };
+}
+
+/** Ficha publica de un trabajo EVALUADO (GET /repositorio/{id}). */
+export function publicoDePrueba(cambios: Partial<TrabajoPublico> = {}): TrabajoPublico {
+  const t = trabajoDePrueba();
+  return {
+    idTrabajo: t.idTrabajo,
+    titulo: t.titulo,
+    resumen: t.resumen,
+    idGrupo: t.idGrupo,
+    grupo: t.grupo,
+    idMateria: t.idMateria,
+    siglaMateria: t.siglaMateria,
+    nombreMateria: t.nombreMateria,
+    idSemestre: t.idSemestre,
+    periodo: t.periodo,
+    idFacultad: t.idFacultad,
+    idTipoTrabajo: t.idTipoTrabajo,
+    tipoTrabajo: t.tipoTrabajo,
+    autores: t.autores,
+    hashtags: ['springboot', 'inventarios'],
+    documentos: [],
+    fechaPublicacion: '2026-11-20T10:00:00Z',
     ...cambios,
   };
 }
