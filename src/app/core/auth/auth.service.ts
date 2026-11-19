@@ -14,11 +14,11 @@ import type {
 } from '../../api/auth';
 import { AutenticacionService } from '../../api/auth/services/autenticacion.service';
 import { DosFactoresService } from '../../api/auth/services/dos-factores.service';
+import { esRutaInterna } from '../../shared/ruta-interna';
 import { RUTA_INICIO_POR_ROL } from './role-home';
 import { TokenStorageService } from './token-storage.service';
 
 export const AUTH_URL = `${environment.apiUrl}/auth`;
-
 /** Paso intermedio del login cuando el usuario tiene 2FA. Solo vive en memoria. */
 export interface DosFactoresPendiente {
   tokenTemporal: string;
@@ -170,14 +170,15 @@ export class AuthService {
 
   /**
    * Tras el login vuelve a la pagina que el usuario queria ver, salvo que deba cambiar la
-   * contrasena. Solo se aceptan rutas internas ("/algo") para no redirigir a sitios externos.
+   * contrasena. Solo se aceptan rutas internas ("/algo") para no redirigir a sitios externos
+   * (ver esRutaInterna).
    */
   destinoTrasLogin(returnUrl: string | null): string {
     const inicio = this.rutaInicio();
     if (inicio === '/change-password' || !returnUrl) {
       return inicio;
     }
-    return returnUrl.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : inicio;
+    return esRutaInterna(returnUrl) ? returnUrl : inicio;
   }
 
   private iniciarSesion(tokens: TokenResponse): void {

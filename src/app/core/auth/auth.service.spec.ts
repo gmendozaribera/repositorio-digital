@@ -115,6 +115,27 @@ describe('AuthService', () => {
     expect(auth.destinoTrasLogin('/perfil/seguridad')).toBe('/perfil/seguridad');
     expect(auth.destinoTrasLogin('//sitio-malicioso.com')).toBe('/estudiante');
     expect(auth.destinoTrasLogin('https://sitio-malicioso.com')).toBe('/estudiante');
+    expect(auth.destinoTrasLogin('/\\sitio-malicioso.com')).toBe('/estudiante');
+    expect(auth.destinoTrasLogin('/\t/sitio-malicioso.com')).toBe('/estudiante');
+    expect(auth.destinoTrasLogin('javascript:alert(1)')).toBe('/estudiante');
+    expect(auth.destinoTrasLogin('/repositorio/7?q=a%2Fb')).toBe('/repositorio/7?q=a%2Fb');
     expect(auth.destinoTrasLogin(null)).toBe('/estudiante');
+  });
+
+  it('los tokens viven solo en sessionStorage (nunca localStorage) y se borran al salir', () => {
+    localStorage.clear();
+    auth.login({ usuario: 'admin', password: 'x' }).subscribe();
+    http.expectOne(`${AUTH_URL}/login`).flush(
+      respuesta({ requiereDosFactores: false, tokenTemporal: null, tokens: tokensDePrueba('ADMIN') }),
+    );
+
+    expect(sessionStorage.length).toBe(1);
+    expect(localStorage.length).toBe(0);
+
+    auth.logout();
+    http.expectOne(`${AUTH_URL}/logout`).flush(null);
+
+    expect(sessionStorage.length).toBe(0);
+    expect(localStorage.length).toBe(0);
   });
 });
