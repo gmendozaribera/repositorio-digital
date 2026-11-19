@@ -32,12 +32,13 @@ const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
         </header>
 
         @if (usuarioCreado(); as usuario) {
-          <p class="alert alert-success" role="status">
+          <p class="alert alert-success" role="status" data-cy="registro-exito">
             Cuenta creada. Tu usuario es <strong>{{ usuario }}</strong
             >. Inicia sesión con la contraseña entregada por tu facultad; se te pedirá cambiarla.
           </p>
           <a
             class="btn btn-primary btn-block"
+            data-cy="registro-ir-login"
             routerLink="/login"
             [queryParams]="{ usuario: usuario }"
             >Ir a iniciar sesión</a
@@ -51,7 +52,7 @@ const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
           @if (espera.mensaje(); as aviso) {
             <p class="alert alert-warn" role="alert">{{ aviso }}</p>
           } @else if (error()) {
-            <p class="alert alert-danger" role="alert">{{ error() }}</p>
+            <p class="alert alert-danger" role="alert" data-cy="registro-error">{{ error() }}</p>
           }
 
           <form [formGroup]="form" (ngSubmit)="registrar()" novalidate>
@@ -59,6 +60,7 @@ const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
               <span>Carnet de identidad (CI)</span>
               <input
                 formControlName="ci"
+                data-cy="registro-ci"
                 autocomplete="off"
                 autocapitalize="characters"
                 spellcheck="false"
@@ -77,6 +79,7 @@ const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
               <span>Número de registro</span>
               <input
                 formControlName="registro"
+                data-cy="registro-registro"
                 inputmode="numeric"
                 autocomplete="off"
                 maxlength="10"
@@ -94,6 +97,7 @@ const ENTERO_POSITIVO = /^[1-9]\d{0,9}$/;
             <button
               class="btn btn-primary btn-block"
               type="submit"
+              data-cy="registro-submit"
               [disabled]="cargando() || espera.bloqueado()"
             >
               @if (espera.bloqueado()) {

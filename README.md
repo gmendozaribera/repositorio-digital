@@ -46,13 +46,14 @@ ng test
 
 ## Running end-to-end tests
 
-For end-to-end (e2e) testing, run:
+Pruebas E2E con Cypress contra el backend real (perfil `demo`) y `npm start`:
 
 ```bash
-ng e2e
+npm run e2e        # headless
+npm run e2e:open   # interfaz de Cypress
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Cómo levantar el backend con datos demo, los flujos cubiertos y cómo resetear la BD: [docs/E2E.md](docs/E2E.md).
 
 ## Additional Resources
 

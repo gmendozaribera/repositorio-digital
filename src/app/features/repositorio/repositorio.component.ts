@@ -77,6 +77,7 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
             <input
               type="search"
               formControlName="q"
+              data-cy="repositorio-buscar"
               [attr.maxlength]="maxQ"
               placeholder="Título, resumen o hashtag"
               autocomplete="off"
@@ -225,7 +226,9 @@ const DEPENDIENTES = ['idCarrera', 'idMateria', 'idSemestre', 'idGrupo', 'idTipo
             @for (t of p.contenido; track t.idTrabajo) {
               <li class="tarjeta-trabajo">
                 <h2 class="tarjeta-titulo">
-                  <a [routerLink]="[fuente.base, t.idTrabajo]">{{ t.titulo }}</a>
+                  <a data-cy="repositorio-resultado" [routerLink]="[fuente.base, t.idTrabajo]">{{
+                    t.titulo
+                  }}</a>
                 </h2>
                 <p class="tarjeta-autores">{{ t.autores.join(', ') }}</p>
                 <p class="muted texto-chico">

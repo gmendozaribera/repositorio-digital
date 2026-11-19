@@ -24,13 +24,19 @@ import { RepositorioPublicoService } from '../../core/services/repositorio-publi
         @if (espera.mensaje(); as aviso) {
           <p class="alert alert-warn" role="alert">{{ aviso }}</p>
         } @else if (error()) {
-          <p class="alert alert-danger" role="alert">{{ error() }}</p>
+          <p class="alert alert-danger" role="alert" data-cy="login-error">{{ error() }}</p>
         }
 
         <form [formGroup]="form" (ngSubmit)="ingresar()" novalidate>
           <label class="field">
             <span>Usuario</span>
-            <input formControlName="usuario" autocomplete="username" maxlength="50" autofocus />
+            <input
+              formControlName="usuario"
+              data-cy="login-usuario"
+              autocomplete="username"
+              maxlength="50"
+              autofocus
+            />
             @if (form.controls.usuario.touched && form.controls.usuario.invalid) {
               <small class="field-error">Ingresa tu usuario.</small>
             }
@@ -40,6 +46,7 @@ import { RepositorioPublicoService } from '../../core/services/repositorio-publi
             <span>Contraseña</span>
             <input
               formControlName="password"
+              data-cy="login-password"
               type="password"
               autocomplete="current-password"
               maxlength="100"
@@ -52,6 +59,7 @@ import { RepositorioPublicoService } from '../../core/services/repositorio-publi
           <button
             class="btn btn-primary btn-block"
             type="submit"
+            data-cy="login-submit"
             [disabled]="cargando() || espera.bloqueado()"
           >
             @if (espera.bloqueado()) {

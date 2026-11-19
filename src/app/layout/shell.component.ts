@@ -47,8 +47,13 @@ const MENU_POR_ROL: Record<Rol, EnlaceMenu[]> = {
         <div class="topbar-user">
           <app-campana />
           <span>{{ usuario.nombre }} {{ usuario.apellidos }}</span>
-          <span class="badge">{{ usuario.rol }}</span>
-          <button class="btn btn-outline btn-sm" type="button" (click)="auth.logout()">
+          <span class="badge" data-cy="rol-usuario">{{ usuario.rol }}</span>
+          <button
+            class="btn btn-outline btn-sm"
+            type="button"
+            data-cy="logout"
+            (click)="auth.logout()"
+          >
             Salir
           </button>
         </div>

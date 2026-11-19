@@ -47,6 +47,7 @@ const MAX_TITULO = 200;
         <span>Archivos</span>
         <input
           type="file"
+          data-cy="subida-archivos"
           multiple
           [attr.accept]="aceptados()"
           [disabled]="enCurso()"
@@ -134,6 +135,7 @@ const MAX_TITULO = 200;
         <button
           class="btn btn-primary"
           type="button"
+          data-cy="subida-subir"
           [disabled]="enCurso() || porSubir().length === 0"
           (click)="subirTodo()"
         >

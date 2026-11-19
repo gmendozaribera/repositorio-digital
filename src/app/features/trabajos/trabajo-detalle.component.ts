@@ -86,18 +86,18 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
       </p>
 
       @if (mensaje()) {
-        <p class="alert alert-success" role="status">{{ mensaje() }}</p>
+        <p class="alert alert-success" role="status" data-cy="detalle-mensaje">{{ mensaje() }}</p>
       }
       @if (error()) {
-        <p class="alert alert-danger" role="alert">{{ error() }}</p>
+        <p class="alert alert-danger" role="alert" data-cy="detalle-error">{{ error() }}</p>
       }
 
       @if (cargando() && !trabajo()) {
         <p class="cargando" role="status">Cargando trabajo…</p>
       } @else if (trabajo(); as t) {
         <header class="page-header">
-          <h1>{{ t.titulo }}</h1>
-          <app-estado-trabajo [estado]="t.estado" />
+          <h1 data-cy="detalle-titulo">{{ t.titulo }}</h1>
+          <app-estado-trabajo data-cy="detalle-estado" [estado]="t.estado" />
         </header>
 
         <dl class="ficha">
@@ -134,7 +134,9 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
           @if (t.calificacion !== null && t.calificacion !== undefined) {
             <div>
               <dt>Calificación</dt>
-              <dd class="calificacion">{{ t.calificacion }} / {{ t.escalaCalifMax }}</dd>
+              <dd class="calificacion" data-cy="detalle-calificacion">
+                {{ t.calificacion }} / {{ t.escalaCalifMax }}
+              </dd>
             </div>
           }
           @if (t.fechaEnvio) {
@@ -181,6 +183,7 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
               <button
                 class="btn btn-primary"
                 type="button"
+                data-cy="accion-enviar"
                 [disabled]="ocupado() || !tienePdf()"
                 aria-describedby="ayuda-enviar"
                 (click)="enviar()"
@@ -192,6 +195,7 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
               <button
                 class="btn btn-primary"
                 type="button"
+                data-cy="accion-tomar"
                 [disabled]="ocupado()"
                 (click)="tomar()"
               >
@@ -202,6 +206,7 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
               <button
                 class="btn btn-success"
                 type="button"
+                data-cy="accion-aprobar"
                 [disabled]="ocupado()"
                 (click)="abrirDialogo('aprobar')"
               >
@@ -212,6 +217,7 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
               <button
                 class="btn btn-primary"
                 type="button"
+                data-cy="accion-calificar"
                 [disabled]="ocupado()"
                 (click)="abrirDialogo('calificar')"
               >
@@ -291,7 +297,12 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
                 }
               </label>
               <div class="form-actions">
-                <button class="btn btn-success" type="submit" [disabled]="ocupado()">
+                <button
+                  class="btn btn-success"
+                  type="submit"
+                  data-cy="aprobar-confirmar"
+                  [disabled]="ocupado()"
+                >
                   {{
                     formAprobar.controls.observaciones.value.trim()
                       ? 'Aprobar con observaciones'
@@ -371,6 +382,7 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
                   type="number"
                   inputmode="numeric"
                   formControlName="calificacion"
+                  data-cy="calificar-nota"
                   min="0"
                   [attr.max]="t.escalaCalifMax"
                   step="1"
@@ -388,7 +400,12 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
                 }
               </label>
               <div class="form-actions">
-                <button class="btn btn-primary" type="submit" [disabled]="ocupado()">
+                <button
+                  class="btn btn-primary"
+                  type="submit"
+                  data-cy="calificar-confirmar"
+                  [disabled]="ocupado()"
+                >
                   Calificar y publicar
                 </button>
                 <button class="btn btn-link" type="button" (click)="cerrarDialogo()">
@@ -422,6 +439,7 @@ function entero(c: AbstractControl<number | null>): ValidationErrors | null {
                   <button
                     class="btn btn-outline btn-sm"
                     type="button"
+                    data-cy="abrir-subida"
                     (click)="abrirSubida(g.idFase)"
                   >
                     Subir archivos <span class="sr-only">a {{ g.nombre }}</span>

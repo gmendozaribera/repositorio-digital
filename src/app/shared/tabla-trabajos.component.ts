@@ -33,9 +33,12 @@ import { fechaAbsoluta, fechaRelativa } from './fecha-relativa';
         @for (t of trabajos(); track t.idTrabajo) {
           <tr class="fila-clicable" (click)="abrir(t)">
             <td data-label="Título">
-              <a [routerLink]="['/trabajos', t.idTrabajo]" (click)="$event.stopPropagation()">{{
-                t.titulo
-              }}</a>
+              <a
+                data-cy="trabajo-enlace"
+                [routerLink]="['/trabajos', t.idTrabajo]"
+                (click)="$event.stopPropagation()"
+                >{{ t.titulo }}</a
+              >
               <div class="muted texto-chico">{{ t.tipoTrabajo }}</div>
             </td>
             @if (mostrarAutores()) {

@@ -74,7 +74,12 @@ export function normalizarHashtag(texto: string): string {
         <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
           <label class="field">
             <span>Título</span>
-            <input formControlName="titulo" [attr.maxlength]="maxTitulo" autocomplete="off" />
+            <input
+              formControlName="titulo"
+              data-cy="trabajo-titulo"
+              [attr.maxlength]="maxTitulo"
+              autocomplete="off"
+            />
             @if (form.controls.titulo.touched && form.controls.titulo.invalid) {
               <small class="field-error">
                 {{ errorDelServidor(form.controls.titulo) ?? 'Entre 5 y 200 caracteres.' }}
@@ -84,7 +89,12 @@ export function normalizarHashtag(texto: string): string {
 
           <label class="field">
             <span>Resumen</span>
-            <textarea formControlName="resumen" rows="6" [attr.maxlength]="maxResumen"></textarea>
+            <textarea
+              formControlName="resumen"
+              data-cy="trabajo-resumen"
+              rows="6"
+              [attr.maxlength]="maxResumen"
+            ></textarea>
             <small
               class="contador"
               [class.field-error]="largoResumen() > maxResumen"
@@ -115,7 +125,7 @@ export function normalizarHashtag(texto: string): string {
             <div class="form-grid">
               <label class="field">
                 <span>Facultad</span>
-                <select formControlName="idFacultad">
+                <select formControlName="idFacultad" data-cy="trabajo-facultad">
                   <option [ngValue]="null" disabled>Seleccione…</option>
                   @for (f of facultades(); track f.idFacultad) {
                     <option [ngValue]="f.idFacultad">{{ f.sigla }} — {{ f.nombre }}</option>
@@ -128,7 +138,7 @@ export function normalizarHashtag(texto: string): string {
 
               <label class="field">
                 <span>Materia</span>
-                <select formControlName="idMateria">
+                <select formControlName="idMateria" data-cy="trabajo-materia">
                   <option [ngValue]="null" disabled>
                     {{
                       form.controls.idFacultad.value ? 'Seleccione…' : 'Primero elija la facultad'
@@ -145,7 +155,7 @@ export function normalizarHashtag(texto: string): string {
 
               <label class="field">
                 <span>Semestre</span>
-                <select formControlName="idSemestre">
+                <select formControlName="idSemestre" data-cy="trabajo-semestre">
                   <option [ngValue]="null" disabled>
                     {{ form.controls.idMateria.value ? 'Seleccione…' : 'Primero elija la materia' }}
                   </option>
@@ -160,7 +170,7 @@ export function normalizarHashtag(texto: string): string {
 
               <label class="field">
                 <span>Grupo</span>
-                <select formControlName="idGrupo">
+                <select formControlName="idGrupo" data-cy="trabajo-grupo">
                   <option [ngValue]="null" disabled>
                     {{
                       form.controls.idSemestre.value
@@ -185,7 +195,7 @@ export function normalizarHashtag(texto: string): string {
 
           <label class="field">
             <span>Tipo de trabajo</span>
-            <select formControlName="idTipoTrabajo">
+            <select formControlName="idTipoTrabajo" data-cy="trabajo-tipo">
               <option [ngValue]="null" disabled>
                 {{ form.controls.idFacultad.value ? 'Seleccione…' : 'Primero elija la facultad' }}
               </option>
@@ -275,7 +285,12 @@ export function normalizarHashtag(texto: string): string {
           </div>
 
           <div class="form-actions">
-            <button class="btn btn-primary" type="submit" [disabled]="guardando()">
+            <button
+              class="btn btn-primary"
+              type="submit"
+              data-cy="trabajo-guardar"
+              [disabled]="guardando()"
+            >
               {{ guardando() ? 'Guardando…' : esEdicion() ? 'Guardar cambios' : 'Crear borrador' }}
             </button>
             <a

@@ -35,7 +35,7 @@ function passwordsValidas(grupo: AbstractControl): ValidationErrors | null {
     <main class="auth-page">
       <section class="card auth-card">
         <header class="auth-header">
-          <h1>Cambiar contraseña</h1>
+          <h1 data-cy="change-password-titulo">Cambiar contraseña</h1>
           @if (obligatorio) {
             <p>Por seguridad debes reemplazar tu contraseña temporal antes de continuar.</p>
           }
